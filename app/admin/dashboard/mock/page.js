@@ -18,13 +18,19 @@ const availableSubjects = [
   "IRS",
 ];
 
+const acceptedFileTypes = ".pdf,.docx,.txt";
+const maximumFileSize = 10 * 1024 * 1024;
+
 export default function MockSetupPage() {
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [showSubjectForm, setShowSubjectForm] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState("");
   const [mode, setMode] = useState("");
   const [difficulty, setDifficulty] = useState("");
+  const [questionCount, setQuestionCount] = useState("");
   const [timeAllocated, setTimeAllocated] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [importedDifficulty, setImportedDifficulty] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   function openSubjectForm() {
@@ -32,12 +38,43 @@ export default function MockSetupPage() {
     setSelectedSubject("");
     setMode("");
     setDifficulty("");
+    setQuestionCount("");
     setTimeAllocated("");
+    setSelectedFile(null);
+    setImportedDifficulty("");
     setErrorMessage("");
   }
 
   function closeSubjectForm() {
     setShowSubjectForm(false);
+    setErrorMessage("");
+  }
+
+  function handleFileChange(event) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+
+    if (file.size > maximumFileSize) {
+      setSelectedFile(null);
+      setErrorMessage("The file must be 10 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+
+    const validExtension = /.(pdf|docx|txt)$/i.test(file.name);
+
+    if (!validExtension) {
+      setSelectedFile(null);
+      setErrorMessage("Only PDF, DOCX, and TXT files are accepted.");
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedFile(file);
     setErrorMessage("");
   }
 
@@ -54,9 +91,26 @@ export default function MockSetupPage() {
       return;
     }
 
+    if (!selectedFile) {
+      setErrorMessage("Please upload a file for this subject.");
+      return;
+    }
+
     if (!timeAllocated || Number(timeAllocated) <= 0) {
       setErrorMessage("Please enter a valid time allocation.");
       return;
+    }
+
+    if (mode === "generated") {
+      if (!questionCount || Number(questionCount) <= 0) {
+        setErrorMessage("Please enter the number of questions to generate.");
+        return;
+      }
+
+      if (!difficulty) {
+        setErrorMessage("Please select a generation difficulty.");
+        return;
+      }
     }
 
     const subjectAlreadyAdded = selectedSubjects.some(
@@ -73,8 +127,10 @@ export default function MockSetupPage() {
       {
         name: selectedSubject,
         mode,
-        difficulty: mode === "generated" ? difficulty : "",
+        difficulty: mode === "generated" ? difficulty : importedDifficulty,
+        questionCount: mode === "generated" ? questionCount : "",
         time: timeAllocated,
+        fileName: selectedFile.name,
         status: "Draft",
       },
     ]);
@@ -83,7 +139,10 @@ export default function MockSetupPage() {
     setSelectedSubject("");
     setMode("");
     setDifficulty("");
+    setQuestionCount("");
     setTimeAllocated("");
+    setSelectedFile(null);
+    setImportedDifficulty("");
     setErrorMessage("");
   }
 
@@ -125,7 +184,9 @@ export default function MockSetupPage() {
 
           <div>
             <p className="step-label">CURRENT STEP</p>
+
             <h2>Add subjects to this mock</h2>
+
             <p>
               A mock must have at least four synced subjects before it can be
               published.
@@ -139,6 +200,7 @@ export default function MockSetupPage() {
               <p className="section-label section-label-light">
                 SUBJECT CONFIGURATION
               </p>
+
               <h2>Subjects</h2>
             </div>
 
@@ -155,11 +217,14 @@ export default function MockSetupPage() {
           {selectedSubjects.length === 0 ? (
             <div className="setup-empty-card">
               <div className="empty-icon">+</div>
+
               <h2>No subjects added</h2>
+
               <p>
                 Add Mathematics, English, or another approved subject to begin
                 configuring this mock.
               </p>
+
               <button
                 className="dashboard-secondary-button"
                 type="button"
@@ -175,6 +240,7 @@ export default function MockSetupPage() {
                   <div className="subject-card-heading">
                     <div>
                       <h3>{subject.name}</h3>
+
                       <p>
                         {subject.mode === "imported"
                           ? "Imported question file"
@@ -191,7 +257,9 @@ export default function MockSetupPage() {
                     <span>
                       Mode:{" "}
                       <strong>
-                        {subject.mode === "imported" ? "Imported" : "AI Generated"}
+                        {subject.mode === "imported"
+                          ? "Imported"
+                          : "AI Generated"}
                       </strong>
                     </span>
 
@@ -201,8 +269,18 @@ export default function MockSetupPage() {
                       </span>
                     )}
 
+                    {subject.questionCount && (
+                      <span>
+                        Questions: <strong>{subject.questionCount}</strong>
+                      </span>
+                    )}
+
                     <span>
                       Time: <strong>{subject.time} minutes</strong>
+                    </span>
+
+                    <span>
+                      File: <strong>{subject.fileName}</strong>
                     </span>
                   </div>
 
@@ -228,7 +306,9 @@ export default function MockSetupPage() {
         <section className="setup-next-step-card">
           <div>
             <p className="section-label section-label-light">NEXT STEP</p>
+
             <h2>Preview and sync subjects</h2>
+
             <p>
               Subject review, question validation, and synchronization will be
               added next.
@@ -303,12 +383,14 @@ export default function MockSetupPage() {
                     onChange={(event) => {
                       setMode(event.target.value);
                       setDifficulty("");
+                      setQuestionCount("");
                       setErrorMessage("");
                     }}
                   />
 
                   <span>
                     <strong>Import Ready-Made</strong>
+
                     <small>
                       Upload a complete question file with answers and
                       explanations.
@@ -330,6 +412,7 @@ export default function MockSetupPage() {
 
                   <span>
                     <strong>Generate from Notes</strong>
+
                     <small>
                       Upload notes and let the Neural Engine create questions.
                     </small>
@@ -337,8 +420,75 @@ export default function MockSetupPage() {
                 </label>
               </fieldset>
 
+              <label className="create-mock-label" htmlFor="subject-file">
+                {mode === "generated"
+                  ? "Notes/content file"
+                  : "Ready-made question file"}
+              </label>
+
+              <input
+                id="subject-file"
+                className="create-mock-input file-input"
+                type="file"
+                accept={acceptedFileTypes}
+                onChange={handleFileChange}
+              />
+
+              <p className="file-help-text">
+                Accepted formats: PDF, DOCX, or TXT. Maximum size: 10 MB.
+              </p>
+
+              {selectedFile && (
+                <p className="selected-file-text">
+                  Selected file: {selectedFile.name}
+                </p>
+              )}
+
+              {mode === "imported" && (
+                <div className="imported-settings">
+                  <label
+                    className="create-mock-label"
+                    htmlFor="imported-difficulty"
+                  >
+                    Optional overall difficulty
+                  </label>
+
+                  <select
+                    id="imported-difficulty"
+                    className="create-mock-input"
+                    value={importedDifficulty}
+                    onChange={(event) =>
+                      setImportedDifficulty(event.target.value)
+                    }
+                  >
+                    <option value="">No difficulty tag</option>
+                    <option value="Basic">Basic</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advance">Advance</option>
+                    <option value="Twister">Twister</option>
+                  </select>
+                </div>
+              )}
+
               {mode === "generated" && (
                 <div className="generated-settings">
+                  <label className="create-mock-label" htmlFor="question-count">
+                    Number of questions
+                  </label>
+
+                  <input
+                    id="question-count"
+                    className="create-mock-input"
+                    type="number"
+                    min="1"
+                    value={questionCount}
+                    onChange={(event) => {
+                      setQuestionCount(event.target.value);
+                      setErrorMessage("");
+                    }}
+                    placeholder="Example: 40"
+                  />
+
                   <label className="create-mock-label" htmlFor="difficulty">
                     Difficulty
                   </label>
@@ -347,7 +497,10 @@ export default function MockSetupPage() {
                     id="difficulty"
                     className="create-mock-input"
                     value={difficulty}
-                    onChange={(event) => setDifficulty(event.target.value)}
+                    onChange={(event) => {
+                      setDifficulty(event.target.value);
+                      setErrorMessage("");
+                    }}
                   >
                     <option value="">Select difficulty</option>
                     <option value="Basic">Basic</option>
@@ -400,4 +553,4 @@ export default function MockSetupPage() {
       )}
     </main>
   );
-    }
+              }
