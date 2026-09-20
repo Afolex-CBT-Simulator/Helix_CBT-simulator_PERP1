@@ -6,6 +6,8 @@
   --pale-blue: #f3f8fc;
   --white: #ffffff;
   --muted-blue: #6f8498;
+  --error-red: #b42318;
+  --success-green: #16734a;
 }
 
 * {
@@ -27,6 +29,10 @@ body {
 
 button {
   font: inherit;
+}
+
+a {
+  color: inherit;
 }
 
 .landing-page {
@@ -183,6 +189,10 @@ h1 span {
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 700;
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
 .primary-button:hover {
@@ -451,7 +461,6 @@ h1 span {
   background: transparent;
   color: var(--deep-blue);
   cursor: pointer;
-  font-size: 1.15rem;
   line-height: 1;
 }
 
@@ -459,10 +468,43 @@ h1 span {
   background: var(--soft-blue);
 }
 
+.eye-icon {
+  position: relative;
+  display: block;
+  width: 19px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-radius: 75% 15%;
+  transform: rotate(45deg);
+}
+
+.eye-icon::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.eye-icon.is-hidden::before {
+  position: absolute;
+  top: 50%;
+  left: -4px;
+  width: 26px;
+  height: 2px;
+  background: currentColor;
+  content: "";
+  transform: translateY(-50%) rotate(-45deg);
+}
+
 .login-error {
   display: block;
   margin-top: 9px;
-  color: #b42318;
+  color: var(--error-red);
   font-size: 0.8rem;
   line-height: 1.4;
   text-align: left;
@@ -471,7 +513,7 @@ h1 span {
 .login-success {
   display: block;
   margin-top: 9px;
-  color: #16734a;
+  color: var(--success-green);
   font-size: 0.8rem;
   line-height: 1.4;
   text-align: left;
@@ -567,4 +609,4 @@ h1 span {
   .login-card h1 {
     font-size: 2rem;
   }
-  }
+}
