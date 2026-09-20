@@ -4,37 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 
 export default function AdminDashboardPage() {
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [mockName, setMockName] = useState("");
-  const [createdMockName, setCreatedMockName] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [activeType, setActiveType] = useState("mock");
 
-  function openCreateForm() {
-    setShowCreateForm(true);
-    setErrorMessage("");
-  }
-
-  function closeCreateForm() {
-    setShowCreateForm(false);
-    setMockName("");
-    setErrorMessage("");
-  }
-
-  function handleCreateMock(event) {
-    event.preventDefault();
-
-    const cleanedName = mockName.trim();
-
-    if (cleanedName === "") {
-      setErrorMessage("Please enter a name for the mock.");
-      return;
-    }
-
-    setCreatedMockName(cleanedName);
-    setShowCreateForm(false);
-    setMockName("");
-    setErrorMessage("");
-  }
+  const isMockView = activeType === "mock";
 
   return (
     <main className="dashboard-page">
@@ -45,7 +17,7 @@ export default function AdminDashboardPage() {
           <h1>Admin Dashboard</h1>
 
           <p className="dashboard-subtitle">
-            Create, publish, and monitor your CBT mock examinations.
+            Create, configure, publish, and monitor your CBT content.
           </p>
         </div>
 
@@ -55,168 +27,182 @@ export default function AdminDashboardPage() {
       </header>
 
       <section className="dashboard-content">
-        <div className="dashboard-welcome-card">
-          <div>
-            <p className="section-label">MOCK DASHBOARD</p>
-
-            <h2>Welcome to your simulator workspace</h2>
-
-            <p>
-              Your published and draft mock examinations will appear here.
-            </p>
-          </div>
+        <div className="content-type-switcher" role="tablist">
+          <button
+            className={`content-type-tab ${
+              isMockView ? "content-type-tab-active" : ""
+            }`}
+            type="button"
+            role="tab"
+            aria-selected={isMockView}
+            onClick={() => setActiveType("mock")}
+          >
+            Mock
+          </button>
 
           <button
-            className="dashboard-primary-button"
+            className={`content-type-tab ${
+              !isMockView ? "content-type-tab-active" : ""
+            }`}
             type="button"
-            onClick={openCreateForm}
+            role="tab"
+            aria-selected={!isMockView}
+            onClick={() => setActiveType("test")}
           >
-            + Create New Mock
+            Test
           </button>
         </div>
 
-        <div className="dashboard-stats">
-          <article className="stat-card">
-            <span className="stat-label">Total Mocks</span>
-            <strong>{createdMockName ? "1" : "0"}</strong>
-            <span className="stat-note">Mocks created</span>
-          </article>
-
-          <article className="stat-card">
-            <span className="stat-label">Published Mocks</span>
-            <strong>0</strong>
-            <span className="stat-note">Ready to share</span>
-          </article>
-
-          <article className="stat-card">
-            <span className="stat-label">Total Attempts</span>
-            <strong>0</strong>
-            <span className="stat-note">Student activity</span>
-          </article>
-        </div>
-
-        {createdMockName ? (
-          <section className="mock-list-section">
-            <div className="section-heading-row">
-              <div>
-                <p className="section-label section-label-light">
-                  YOUR MOCKS
-                </p>
-
-                <h2>Mock examinations</h2>
-              </div>
-
-              <button
-                className="dashboard-outline-button"
-                type="button"
-                onClick={openCreateForm}
-              >
-                + Add Mock
-              </button>
-            </div>
-
-            <article className="mock-list-card">
-              <div className="mock-list-main">
-                <div className="mock-status-dot"></div>
-
-                <div>
-                  <h3>{createdMockName}</h3>
-
-                  <p>Draft · No subjects added yet</p>
-                </div>
-              </div>
-
-              <Link
-                href="/admin/dashboard/mock"
-                className="mock-edit-button"
-              >
-                Continue setup
-              </Link>
-            </article>
-          </section>
-        ) : (
-          <section className="empty-dashboard-card">
-            <div className="empty-icon">+</div>
-
-            <h2>No mock examinations yet</h2>
-
-            <p>
-              Create your first mock to begin adding subjects and questions.
-            </p>
-
-            <button
-              className="dashboard-secondary-button"
-              type="button"
-              onClick={openCreateForm}
-            >
-              Create Your First Mock
-            </button>
-          </section>
-        )}
+        {isMockView ? <MockDashboardView /> : <TestDashboardView />}
       </section>
-
-      {showCreateForm && (
-        <div className="dashboard-modal-overlay">
-          <section className="create-mock-modal">
-            <button
-              className="create-modal-close"
-              type="button"
-              onClick={closeCreateForm}
-              aria-label="Close create mock form"
-            >
-              ×
-            </button>
-
-            <p className="section-label section-label-dark">STEP 1</p>
-
-            <h2>Create a new mock</h2>
-
-            <p className="create-modal-description">
-              Give this mock a clear name. You can add subjects and questions
-              after creating it.
-            </p>
-
-            <form onSubmit={handleCreateMock}>
-              <label className="create-mock-label" htmlFor="mock-name">
-                Mock name
-              </label>
-
-              <input
-                id="mock-name"
-                className="create-mock-input"
-                type="text"
-                value={mockName}
-                onChange={(event) => {
-                  setMockName(event.target.value);
-                  setErrorMessage("");
-                }}
-                placeholder="Example: Mock 1.0"
-                autoFocus
-              />
-
-              {errorMessage && (
-                <p className="create-mock-error" role="alert">
-                  {errorMessage}
-                </p>
-              )}
-
-              <div className="create-modal-actions">
-                <button
-                  className="create-cancel-button"
-                  type="button"
-                  onClick={closeCreateForm}
-                >
-                  Cancel
-                </button>
-
-                <button className="create-submit-button" type="submit">
-                  Create Mock
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
-      )}
     </main>
   );
-    }
+}
+
+function MockDashboardView() {
+  return (
+    <>
+      <div className="dashboard-welcome-card">
+        <div>
+          <p className="section-label">MOCK DASHBOARD</p>
+
+          <h2>Full four-subject exam simulations</h2>
+
+          <p>
+            Create a Mock where students select exactly four synced subjects.
+          </p>
+        </div>
+
+        <Link
+          href="/admin/dashboard/mock"
+          className="dashboard-primary-button dashboard-action-link"
+        >
+          Create New Mock
+        </Link>
+      </div>
+
+      <div className="dashboard-stats">
+        <article className="stat-card">
+          <span className="stat-label">Total Mocks</span>
+          <strong>0</strong>
+          <span className="stat-note">Draft and published</span>
+        </article>
+
+        <article className="stat-card">
+          <span className="stat-label">Published Mocks</span>
+          <strong>0</strong>
+          <span className="stat-note">Available to students</span>
+        </article>
+
+        <article className="stat-card">
+          <span className="stat-label">Mock Attempts</span>
+          <strong>0</strong>
+          <span className="stat-note">Student activity</span>
+        </article>
+      </div>
+
+      <section className="dashboard-list-section">
+        <div className="dashboard-list-heading">
+          <div>
+            <p className="section-label section-label-light">MOCKS</p>
+            <h2>Your Mock examinations</h2>
+          </div>
+
+          <span className="dashboard-count-badge">0 items</span>
+        </div>
+
+        <div className="dashboard-empty-state">
+          <div className="empty-icon">+</div>
+
+          <h2>No Mocks created yet</h2>
+
+          <p>
+            Create a Mock to begin adding subjects, question banks, and
+            publish settings.
+          </p>
+
+          <Link
+            href="/admin/dashboard/mock"
+            className="dashboard-secondary-link"
+          >
+            Start a Mock
+          </Link>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function TestDashboardView() {
+  return (
+    <>
+      <div className="dashboard-welcome-card">
+        <div>
+          <p className="section-label">TEST DASHBOARD</p>
+
+          <h2>Flexible single or multi-subject practice</h2>
+
+          <p>
+            Create a Test with one or more subjects in Study Mode or CBT Mode.
+          </p>
+        </div>
+
+        <Link
+          href="/admin/dashboard/test"
+          className="dashboard-primary-button dashboard-action-link"
+        >
+          Create New Test
+        </Link>
+      </div>
+
+      <div className="dashboard-stats">
+        <article className="stat-card">
+          <span className="stat-label">Total Tests</span>
+          <strong>0</strong>
+          <span className="stat-note">Draft and published</span>
+        </article>
+
+        <article className="stat-card">
+          <span className="stat-label">Published Tests</span>
+          <strong>0</strong>
+          <span className="stat-note">Available to students</span>
+        </article>
+
+        <article className="stat-card">
+          <span className="stat-label">Test Attempts</span>
+          <strong>0</strong>
+          <span className="stat-note">Student activity</span>
+        </article>
+      </div>
+
+      <section className="dashboard-list-section">
+        <div className="dashboard-list-heading">
+          <div>
+            <p className="section-label section-label-light">TESTS</p>
+            <h2>Your practice Tests</h2>
+          </div>
+
+          <span className="dashboard-count-badge">0 items</span>
+        </div>
+
+        <div className="dashboard-empty-state">
+          <div className="empty-icon">+</div>
+
+          <h2>No Tests created yet</h2>
+
+          <p>
+            Create a Test to configure subjects, mode, timing, and tab-switch
+            protection.
+          </p>
+
+          <Link
+            href="/admin/dashboard/test"
+            className="dashboard-secondary-link"
+          >
+            Start a Test
+          </Link>
+        </div>
+      </section>
+    </>
+  );
+            }
