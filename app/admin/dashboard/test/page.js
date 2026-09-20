@@ -18,27 +18,32 @@ const availableSubjects = [
   "IRS",
 ];
 
-const defaultMaxTabSwitches = 3;
-const defaultReturnCountdown = 10;
+const acceptedFileTypes = ".pdf,.docx,.txt";
+const maximumFileSize = 10 * 1024 * 1024;
 
 export default function TestSetupPage() {
   const [testName, setTestName] = useState("");
   const [testMode, setTestMode] = useState("cbt");
-  const [maxTabSwitches, setMaxTabSwitches] = useState(
-    defaultMaxTabSwitches.toString(),
-  );
-  const [returnCountdown, setReturnCountdown] = useState(
-    defaultReturnCountdown.toString(),
-  );
+  const [maxTabSwitches, setMaxTabSwitches] = useState("3");
+  const [returnCountdown, setReturnCountdown] = useState("10");
+
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [showSubjectForm, setShowSubjectForm] = useState(false);
+
   const [selectedSubject, setSelectedSubject] = useState("");
   const [subjectMode, setSubjectMode] = useState("");
   const [timeAllocated, setTimeAllocated] = useState("");
   const [questionCount, setQuestionCount] = useState("");
   const [difficulty, setDifficulty] = useState("");
   const [fileName, setFileName] = useState("");
+
   const [errorMessage, setErrorMessage] = useState("");
+  const [savedMessage, setSavedMessage] = useState("");
+
+  const availableSubjectOptions = availableSubjects.filter(
+    (subject) =>
+      !selectedSubjects.some((selected) => selected.name === subject),
+  );
 
   function openSubjectForm() {
     setShowSubjectForm(true);
@@ -49,6 +54,7 @@ export default function TestSetupPage() {
     setDifficulty("");
     setFileName("");
     setErrorMessage("");
+    setSavedMessage("");
   }
 
   function closeSubjectForm() {
@@ -64,16 +70,16 @@ export default function TestSetupPage() {
       return;
     }
 
-    const validFile = /.(pdf|docx|txt)$/i.test(file.name);
+    const validExtension = /.(pdf|docx|txt)$/i.test(file.name);
 
-    if (!validFile) {
+    if (!validExtension) {
       setFileName("");
       setErrorMessage("Only PDF, DOCX, and TXT files are accepted.");
       event.target.value = "";
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
+    if (file.size > maximumFileSize) {
       setFileName("");
       setErrorMessage("The file must be 10 MB or smaller.");
       event.target.value = "";
@@ -136,7 +142,8 @@ export default function TestSetupPage() {
         time: timeAllocated,
         questionCount:
           subjectMode === "generated" ? questionCount : "From file",
-        difficulty: subjectMode === "generated" ? difficulty : "Manual tag",
+        difficulty:
+          subjectMode === "generated" ? difficulty : "Manual tag optional",
         fileName,
         status: "Draft",
       },
@@ -160,6 +167,7 @@ export default function TestSetupPage() {
 
   function handleSaveTest(event) {
     event.preventDefault();
+    setSavedMessage("");
 
     if (!testName.trim()) {
       setErrorMessage("Please enter a name for the Test.");
@@ -171,24 +179,21 @@ export default function TestSetupPage() {
       return;
     }
 
-    if (!maxTabSwitches || Number(maxTabSwitches) < 0) {
+    if (maxTabSwitches === "" || Number(maxTabSwitches) < 0) {
       setErrorMessage("Enter a valid maximum tab-switch value.");
       return;
     }
 
-    if (!returnCountdown || Number(returnCountdown) < 1) {
+    if (returnCountdown === "" || Number(returnCountdown) < 1) {
       setErrorMessage("Enter a return countdown of at least one second.");
       return;
     }
 
     setErrorMessage("");
-    alert("Test settings saved for review. Publishing will be added next.");
+    setSavedMessage(
+      "Test settings saved locally for review. Publishing will be added next.",
+    );
   }
-
-  const availableSubjectOptions = availableSubjects.filter(
-    (subject) =>
-      !selectedSubjects.some((selected) => selected.name === subject),
-  );
 
   return (
     <main className="mock-setup-page">
@@ -229,6 +234,7 @@ export default function TestSetupPage() {
               onChange={(event) => {
                 setTestName(event.target.value);
                 setErrorMessage("");
+                setSavedMessage("");
               }}
               placeholder="Example: Physics Practice Set 1"
             />
@@ -237,8 +243,7 @@ export default function TestSetupPage() {
               <p className="section-label section-label-light">TEST MODE</p>
 
               <p>
-                This setting controls whether corrections appear immediately
-                after each answer.
+                This setting controls when corrections appear to the student.
               </p>
             </div>
 
@@ -292,7 +297,8 @@ export default function TestSetupPage() {
               </p>
 
               <p>
-                These values are copied to the Attempt when the Test starts.
+                These settings will be copied to the Attempt when the Test
+                starts.
               </p>
             </div>
 
@@ -314,6 +320,7 @@ export default function TestSetupPage() {
                   onChange={(event) => {
                     setMaxTabSwitches(event.target.value);
                     setErrorMessage("");
+                    setSavedMessage("");
                   }}
                 />
               </div>
@@ -335,6 +342,7 @@ export default function TestSetupPage() {
                   onChange={(event) => {
                     setReturnCountdown(event.target.value);
                     setErrorMessage("");
+                    setSavedMessage("");
                   }}
                 />
               </div>
@@ -453,6 +461,12 @@ export default function TestSetupPage() {
             </p>
           )}
 
+          {savedMessage && (
+            <p className="login-success test-page-success" role="status">
+              {savedMessage}
+            </p>
+          )}
+
           <div className="test-save-actions">
             <button className="dashboard-primary-button" type="submit">
               Save Test Settings
@@ -563,7 +577,7 @@ export default function TestSetupPage() {
                 id="test-file"
                 className="create-mock-input file-input"
                 type="file"
-                accept=".pdf,.docx,.txt"
+                accept={acceptedFileTypes}
                 onChange={handleFileChange}
               />
 
@@ -647,17 +661,4 @@ export default function TestSetupPage() {
                 </p>
               )}
 
-              <div className="create-modal-actions">
-                <button
-                  className="create-cancel-button"
-                  type="button"
-                  onClick={closeSubjectForm}
-                >
-                  Cancel
-                </button>
-
-                <button className="create-submit-button" type="submit">
-                  Save Subject
-                </button>
-              </div>
-           
+              <div className="create-moda
