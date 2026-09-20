@@ -396,3 +396,125 @@ h1 span {
     font-size: 1.55rem;
   }
 }
+.login-page {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    linear-gradient(rgba(220, 235, 247, 0.7), rgba(243, 248, 252, 0.95)),
+    var(--pale-blue);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 430px;
+  padding: 42px 38px;
+  border: 1px solid rgba(31, 95, 153, 0.14);
+  border-radius: 16px;
+  background: var(--white);
+  box-shadow: 0 20px 55px rgba(9, 39, 71, 0.12);
+  text-align: center;
+}
+
+.login-brand-mark {
+  display: flex;
+  width: 52px;
+  height: 52px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+  border-radius: 15px;
+  background: var(--soft-blue);
+  color: var(--navy);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.login-kicker {
+  margin-bottom: 9px;
+  color: var(--mid-blue);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.login-card h1 {
+  font-size: 2.35rem;
+  letter-spacing: -0.03em;
+}
+
+.login-description {
+  margin: 15px auto 28px;
+  color: var(--muted-blue);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.login-form label {
+  margin-bottom: 8px;
+  color: var(--deep-blue);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 14px 15px;
+  border: 1px solid rgba(31, 95, 153, 0.22);
+  border-radius: 7px;
+  outline: none;
+  color: var(--navy);
+  font-size: 0.92rem;
+}
+
+.login-form input:focus {
+  border-color: var(--mid-blue);
+  box-shadow: 0 0 0 3px rgba(31, 95, 153, 0.12);
+}
+
+.login-button {
+  margin-top: 17px;
+  padding: 14px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--deep-blue);
+  color: var(--white);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.login-button:hover {
+  background: var(--navy);
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 25px;
+  color: var(--mid-blue);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 500px) {
+  .login-card {
+    padding: 34px 23px;
+  }
+
+  .login-card h1 {
+    font-size: 2rem;
+  }
+  }
