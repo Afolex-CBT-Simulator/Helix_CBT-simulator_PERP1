@@ -73,7 +73,12 @@ export default function AdminLoginPage() {
               }
               title={showPasscode ? "Hide passcode" : "Show passcode"}
             >
-              {showPasscode ? "🙈" : "👁"}
+              <span
+                className={`eye-icon ${
+                  showPasscode ? "" : "is-hidden"
+                }`}
+                aria-hidden="true"
+              ></span>
             </button>
           </div>
 
@@ -100,4 +105,4 @@ export default function AdminLoginPage() {
       </section>
     </main>
   );
-                }
+}
