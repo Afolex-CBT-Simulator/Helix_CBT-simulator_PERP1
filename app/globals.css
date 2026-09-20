@@ -1776,3 +1776,351 @@ h1 span {
     align-self: flex-start;
   }
 }
+.candidate-dashboard-page {
+  min-height: 100vh;
+  background: #f3f8fc;
+  color: #092747;
+}
+
+.candidate-dashboard-topbar {
+  display: flex;
+  min-height: 76px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 5%;
+  border-bottom: 1px solid rgba(31, 95, 153, 0.14);
+  background: #ffffff;
+}
+
+.candidate-dashboard-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.candidate-dashboard-mark {
+  display: flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #dcebf7;
+  color: #092747;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.candidate-dashboard-brand p {
+  color: #1f5f99;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.candidate-dashboard-brand span {
+  display: block;
+  margin-top: 3px;
+  color: #6f8498;
+  font-size: 0.72rem;
+}
+
+.candidate-dashboard-exit {
+  padding: 9px 15px;
+  border: 1px solid rgba(31, 95, 153, 0.24);
+  border-radius: 7px;
+  background: #ffffff;
+  color: #123e6b;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.candidate-dashboard-exit:hover {
+  background: #dcebf7;
+}
+
+.candidate-dashboard-main {
+  width: 90%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 42px 0 70px;
+}
+
+.candidate-dashboard-intro {
+  margin-bottom: 25px;
+}
+
+.candidate-dashboard-eyebrow {
+  margin-bottom: 9px;
+  color: #1f5f99;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.candidate-dashboard-intro h1 {
+  color: #092747;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.2rem, 5vw, 3.8rem);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+.candidate-dashboard-intro p:last-child {
+  max-width: 570px;
+  margin-top: 12px;
+  color: #6f8498;
+  font-size: 0.94rem;
+  line-height: 1.6;
+}
+
+.candidate-identity-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 23px 25px;
+  border: 1px solid rgba(31, 95, 153, 0.14);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(9, 39, 71, 0.05);
+}
+
+.candidate-identity-card span:first-child {
+  color: #1f5f99;
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.candidate-identity-card h2 {
+  margin-top: 8px;
+  color: #092747;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.42rem;
+}
+
+.candidate-identity-card p {
+  margin-top: 7px;
+  color: #6f8498;
+  font-size: 0.8rem;
+}
+
+.candidate-identity-card strong {
+  color: #123e6b;
+  letter-spacing: 0.04em;
+}
+
+.candidate-verified-badge {
+  padding: 8px 13px;
+  border-radius: 50px;
+  background: #e4f3ec;
+  color: #16734a;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.candidate-type-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 27px;
+  padding: 4px;
+  border: 1px solid rgba(31, 95, 153, 0.15);
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.candidate-type-tab {
+  min-width: 108px;
+  padding: 11px 20px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #6f8498;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.candidate-type-tab-active {
+  background: #123e6b;
+  color: #ffffff;
+  box-shadow: 0 5px 13px rgba(9, 39, 71, 0.14);
+}
+
+.candidate-access-panel {
+  margin-top: 20px;
+  padding: 28px;
+  border: 1px solid rgba(31, 95, 153, 0.14);
+  border-radius: 13px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(9, 39, 71, 0.05);
+}
+
+.candidate-panel-label {
+  color: #1f5f99;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.candidate-panel-heading h2 {
+  margin-top: 9px;
+  color: #092747;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.7rem;
+}
+
+.candidate-panel-heading p {
+  max-width: 520px;
+  margin-top: 9px;
+  color: #6f8498;
+  font-size: 0.87rem;
+  line-height: 1.6;
+}
+
+.candidate-passcode-box {
+  display: grid;
+  max-width: 540px;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-top: 23px;
+}
+
+.candidate-passcode-box label {
+  grid-column: 1 / -1;
+  color: #123e6b;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.candidate-passcode-box input {
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid rgba(31, 95, 153, 0.24);
+  border-radius: 7px;
+  outline: none;
+  color: #092747;
+  font-size: 0.9rem;
+}
+
+.candidate-passcode-box input:focus {
+  border-color: #1f5f99;
+  box-shadow: 0 0 0 3px rgba(31, 95, 153, 0.12);
+}
+
+.candidate-passcode-box button {
+  padding: 13px 17px;
+  border: 0;
+  border-radius: 7px;
+  background: #123e6b;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.candidate-passcode-box button:hover {
+  background: #092747;
+}
+
+.candidate-empty-panel {
+  display: flex;
+  min-height: 220px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 23px;
+  padding: 30px;
+  border: 1px dashed rgba(31, 95, 153, 0.28);
+  border-radius: 11px;
+  background: #f8fbfd;
+  text-align: center;
+}
+
+.candidate-empty-mark {
+  display: flex;
+  width: 45px;
+  height: 45px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #dcebf7;
+  color: #123e6b;
+  font-size: 1.5rem;
+}
+
+.candidate-empty-panel h2 {
+  margin-top: 14px;
+  color: #092747;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.42rem;
+}
+
+.candidate-empty-panel p {
+  max-width: 390px;
+  margin-top: 8px;
+  color: #6f8498;
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
+.candidate-dashboard-loading {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #6f8498;
+  font-size: 0.88rem;
+}
+
+.candidate-loading-mark {
+  display: flex;
+  width: 46px;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #dcebf7;
+  color: #092747;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 25px;
+  font-weight: 700;
+}
+
+@media (max-width: 650px) {
+  .candidate-dashboard-topbar {
+    padding: 14px 20px;
+  }
+
+  .candidate-dashboard-main {
+    width: calc(100% - 40px);
+    padding-top: 31px;
+  }
+
+  .candidate-identity-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .candidate-verified-badge {
+    align-self: flex-start;
+  }
+
+  .candidate-access-panel {
+    padding: 22px;
+  }
+
+  .candidate-passcode-box {
+    grid-template-columns: 1fr;
+  }
+
+  .candidate-passcode-box button {
+    width: 100%;
+  }
+  }
