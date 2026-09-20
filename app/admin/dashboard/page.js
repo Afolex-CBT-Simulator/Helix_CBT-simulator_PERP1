@@ -1,50 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-
-const storageKey = "helix_registered_candidates";
-
-const defaultCandidates = [
-  {
-    id: "candidate-1",
-    fullName: "Sample Candidate",
-    candidateId: "HOT2027001",
-  },
-];
-
-function normalizeCandidateId(value) {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
-function readCandidates() {
-  if (typeof window === "undefined") {
-    return defaultCandidates;
-  }
-
-  const saved = window.localStorage.getItem(storageKey);
-
-  if (!saved) {
-    window.localStorage.setItem(
-      storageKey,
-      JSON.stringify(defaultCandidates),
-    );
-
-    return defaultCandidates;
-  }
-
-  try {
-    const parsed = JSON.parse(saved);
-
-    return Array.isArray(parsed) ? parsed : defaultCandidates;
-  } catch {
-    return defaultCandidates;
-  }
-}
-
-function writeCandidates(candidates) {
-  window.localStorage.setItem(storageKey, JSON.stringify(candidates));
-}
+import { useEffect, useMemo, useState } from "react";
+import { getSupabaseClient } from "../../../lib/supabase/client";
 
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState("mock");
@@ -54,7 +12,9 @@ export default function AdminDashboardPage() {
       <header className="dashboard-header">
         <div>
           <p className="dashboard-kicker">HELIX ACADEMY</p>
+
           <h1>Admin Dashboard</h1>
+
           <p className="dashboard-subtitle">
             Create, configure, publish, and monitor your CBT content.
           </p>
@@ -116,7 +76,9 @@ function MockSection() {
       <div className="dashboard-welcome-card">
         <div>
           <p className="section-label">MOCK DASHBOARD</p>
+
           <h2>Full four-subject exam simulations</h2>
+
           <p>
             Create a Mock where Candidates select exactly four synced subjects.
           </p>
@@ -150,7 +112,7 @@ function MockSection() {
         </article>
       </div>
 
-      <EmptyDashboardSection
+      <EmptySection
         label="MOCKS"
         title="Your Mock examinations"
         message="Create a Mock to begin adding subjects, question banks, and publishing settings."
@@ -167,7 +129,9 @@ function TestSection() {
       <div className="dashboard-welcome-card">
         <div>
           <p className="section-label">TEST DASHBOARD</p>
+
           <h2>Flexible single or multi-subject practice</h2>
+
           <p>
             Create a Test with one or more subjects in Study Mode or CBT Mode.
           </p>
@@ -201,7 +165,7 @@ function TestSection() {
         </article>
       </div>
 
-      <EmptyDashboardSection
+      <EmptySection
         label="TESTS"
         title="Your practice Tests"
         message="Create a Test to configure subjects, mode, timing, and tab-switch protection."
@@ -212,13 +176,7 @@ function TestSection() {
   );
 }
 
-function EmptyDashboardSection({
-  label,
-  title,
-  message,
-  link,
-  linkText,
-}) {
+function EmptySection({ label, title, message, link, linkText }) {
   return (
     <section className="dashboard-list-section">
       <div className="dashboard-list-heading">
@@ -232,7 +190,9 @@ function EmptyDashboardSection({
 
       <div className="dashboard-empty-state">
         <div className="empty-icon">+</div>
+
         <h2>No {label} created yet</h2>
+
         <p>{message}</p>
 
         <Link href={link} className="dashboard-secondary-link">
@@ -244,12 +204,14 @@ function EmptyDashboardSection({
 }
 
 function CandidatesSection() {
-  const [candidates, setCandidates] = useState(() => readCandidates());
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [fullName, setFullName] = useState("");
   const [candidateId, setCandidateId] = useState("");
-  const [error, setError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const visibleCandidates = useMemo(() => {
     const searchValue = search.trim().toLowerCase();
@@ -260,58 +222,120 @@ function CandidatesSection() {
 
     return candidates.filter(
       (candidate) =>
-        candidate.fullName.toLowerCase().includes(searchValue) ||
-        candidate.candidateId.toLowerCase().includes(searchValue),
+        candidate.full_name.toLowerCase().includes(searchValue) ||
+        candidate.candidate_id.toLowerCase().includes(searchValue),
     );
   }, [candidates, search]);
+
+  async function loadCandidates() {
+    try {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from("candidates")
+        .select("id, full_name, candidate_id, created_at")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setCandidates(data || []);
+    } catch (error) {
+      setErrorMessage(error.message || "Could not load Candidates.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadCandidates();
+  }, []);
+
+  function normalizeCandidateId(value) {
+    return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
 
   function closeForm() {
     setShowForm(false);
     setFullName("");
     setCandidateId("");
-    setError("");
+    setErrorMessage("");
   }
 
-  function addCandidate(event) {
+  async function addCandidate(event) {
     event.preventDefault();
 
     const cleanedName = fullName.trim().replace(/s+/g, " ");
     const normalizedId = normalizeCandidateId(candidateId);
 
     if (!cleanedName) {
-      setError("Please enter the Candidate Full Name.");
+      setErrorMessage("Please enter the Candidate Full Name.");
       return;
     }
 
     if (!normalizedId) {
-      setError("Please enter the Candidate ID.");
+      setErrorMessage("Please enter the Candidate ID.");
       return;
     }
 
-    if (candidates.some((candidate) => candidate.candidateId === normalizedId)) {
-      setError("This Candidate ID already exists in the registered roster.");
-      return;
+    try {
+      const supabase = getSupabaseClient();
+
+      const { error } = await supabase.from("candidates").insert({
+        full_name: cleanedName,
+        candidate_id: normalizedId,
+      });
+
+      if (error) {
+        if (error.code === "23505") {
+          setErrorMessage(
+            "This Candidate ID already exists in the registered roster.",
+          );
+          return;
+        }
+
+        throw error;
+      }
+
+      closeForm();
+      setSuccessMessage("Candidate added successfully.");
+      setLoading(true);
+      await loadCandidates();
+    } catch (error) {
+      setErrorMessage(error.message || "Could not add Candidate.");
     }
-
-    const updated = [
-      ...candidates,
-      {
-        id: `candidate-${Date.now()}`,
-        fullName: cleanedName,
-        candidateId: normalizedId,
-      },
-    ];
-
-    setCandidates(updated);
-    writeCandidates(updated);
-    closeForm();
   }
 
-  function removeCandidate(id) {
-    const updated = candidates.filter((candidate) => candidate.id !== id);
+  async function removeCandidate(id) {
+    const confirmed = window.confirm(
+      "Remove this Candidate from the roster?",
+    );
 
-    setCandidates(updated);
-    writeCandidates(updated);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseClient();
+
+      const { error } = await supabase
+        .from("candidates")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        throw error;
+      }
+
+      setCandidates(
+        candidates.filter((candidate) => candidate.id !== id),
+      );
+
+      setSuccessMessage("Candidate removed successfully.");
+    } catch (error) {
+      setErrorMessage(error.message || "Could not remove Candidate.");
+    }
   }
 
   return (
@@ -325,7 +349,7 @@ function CandidatesSection() {
           <h2>Registered Candidates</h2>
 
           <p>
-            Manage the Candidates who may access published Mocks and Tests.
+            Manage Candidates who may access published Mocks and Tests.
           </p>
         </div>
 
@@ -333,13 +357,20 @@ function CandidatesSection() {
           className="dashboard-primary-button"
           type="button"
           onClick={() => {
-            setError("");
+            setErrorMessage("");
+            setSuccessMessage("");
             setShowForm(true);
           }}
         >
           + Add Candidate
         </button>
       </div>
+
+      {successMessage && (
+        <p className="candidate-upload-success" role="status">
+          {successMessage}
+        </p>
+      )}
 
       <div className="candidate-management-tools">
         <label htmlFor="candidate-search">Search roster</label>
@@ -355,12 +386,24 @@ function CandidatesSection() {
         <span>{candidates.length} registered</span>
       </div>
 
+      {errorMessage && !showForm && (
+        <p className="create-mock-error" role="alert">
+          {errorMessage}
+        </p>
+      )}
+
       <div className="candidate-roster-card">
-        {visibleCandidates.length === 0 ? (
+        {loading ? (
+          <div className="candidate-roster-empty">
+            <p>Loading Candidates...</p>
+          </div>
+        ) : visibleCandidates.length === 0 ? (
           <div className="candidate-roster-empty">
             <div className="empty-icon">+</div>
-            <h3>No matching Candidates</h3>
-            <p>Try another search or add a new Candidate.</p>
+
+            <h3>No Candidates registered</h3>
+
+            <p>Add a Candidate to begin building the roster.</p>
           </div>
         ) : (
           <div className="candidate-table-wrapper">
@@ -377,11 +420,11 @@ function CandidatesSection() {
               <tbody>
                 {visibleCandidates.map((candidate) => (
                   <tr key={candidate.id}>
-                    <td>{candidate.fullName}</td>
+                    <td>{candidate.full_name}</td>
 
                     <td>
                       <span className="candidate-id-value">
-                        {candidate.candidateId}
+                        {candidate.candidate_id}
                       </span>
                     </td>
 
@@ -430,7 +473,7 @@ function CandidatesSection() {
             <h2>Add Candidate</h2>
 
             <p className="create-modal-description">
-              Register a Candidate before they can access a Mock or Test.
+              This Candidate will be stored in Supabase.
             </p>
 
             <form onSubmit={addCandidate}>
@@ -445,7 +488,7 @@ function CandidatesSection() {
                 value={fullName}
                 onChange={(event) => {
                   setFullName(event.target.value);
-                  setError("");
+                  setErrorMessage("");
                 }}
                 placeholder="Enter Candidate Full Name"
                 autoFocus
@@ -462,7 +505,7 @@ function CandidatesSection() {
                 value={candidateId}
                 onChange={(event) => {
                   setCandidateId(event.target.value);
-                  setError("");
+                  setErrorMessage("");
                 }}
                 placeholder="Example: HOT-2027-001"
               />
@@ -471,9 +514,9 @@ function CandidatesSection() {
                 Spacing, casing, and punctuation are normalized automatically.
               </p>
 
-              {error && (
+              {errorMessage && (
                 <p className="create-mock-error" role="alert">
-                  {error}
+                  {errorMessage}
                 </p>
               )}
 
@@ -487,7 +530,7 @@ function CandidatesSection() {
                 </button>
 
                 <button className="create-submit-button" type="submit">
-                  Add Candidate
+                  Save Candidate
                 </button>
               </div>
             </form>
@@ -496,4 +539,4 @@ function CandidatesSection() {
       )}
     </section>
   );
-    }
+            }
