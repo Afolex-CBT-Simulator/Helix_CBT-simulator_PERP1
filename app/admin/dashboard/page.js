@@ -46,11 +46,6 @@ function loadCandidates() {
 
     return defaultCandidates;
   } catch {
-    window.localStorage.setItem(
-      candidateStorageKey,
-      JSON.stringify(defaultCandidates),
-    );
-
     return defaultCandidates;
   }
 }
@@ -63,26 +58,41 @@ function saveCandidates(candidates) {
 }
 
 function parseCsvLine(line) {
-  const result = [];
-  let value = "";
-  let insideQuotes = false;
+  const output = [];
+  let current = "";
+  let quoted = false;
 
   for (let index = 0; index < line.length; index += 1) {
     const character = line[index];
 
     if (character === '"') {
-      insideQuotes = !insideQuotes;
-    } else if (character === "," && !insideQuotes) {
-      result.push(value.trim());
-      value = "";
-    } else {
-      value += character;
+      quoted = !quoted;
+      continue;
     }
+
+    if (character === "," && !quoted) {
+      output.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += character;
   }
 
-  result.push(value.trim());
+  output.push(current.trim());
 
-  return result.map((item) => item.replace(/^"|"$/g, "").trim());
+  return output;
+}
+
+function getCsvLines(text) {
+  const normalizedText = text.replaceAll("
+", "");
+
+  return normalizedText
+    .match(/[^
+]+/g)
+    ?.map((line) => line.trim())
+    .filter((line) => line.length > 0) || [];
 }
 
 export default function AdminDashboardPage() {
@@ -371,26 +381,21 @@ function CandidateManagementView() {
       return;
     }
 
-    const updatedCandidates = [
+    updateCandidates([
       ...candidates,
       {
         id: `candidate-${Date.now()}`,
         fullName: cleanedName,
         candidateId: normalizedId,
       },
-    ];
+    ]);
 
-    updateCandidates(updatedCandidates);
     setUploadMessage("");
     closeForm();
   }
 
   function removeCandidate(id) {
-    const updatedCandidates = candidates.filter(
-      (candidate) => candidate.id !== id,
-    );
-
-    updateCandidates(updatedCandidates);
+    updateCandidates(candidates.filter((candidate) => candidate.id !== id));
   }
 
   function handleCsvUpload(event) {
@@ -413,12 +418,7 @@ function CandidateManagementView() {
 
     reader.onload = () => {
       const text = String(reader.result || "");
-
-      const lines = text
-        .split("
-")
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
+      const lines = getCsvLines(text);
 
       if (lines.length < 2) {
         setErrorMessage("The CSV must include a header and at least one row.");
@@ -426,10 +426,10 @@ function CandidateManagementView() {
       }
 
       const headers = parseCsvLine(lines[0]).map(normalizeHeader);
-      const fullNameIndex = headers.indexOf("fullname");
-      const candidateIdIndex = headers.indexOf("candidateid");
+      const nameIndex = headers.indexOf("fullname");
+      const idIndex = headers.indexOf("candidateid");
 
-      if (fullNameIndex === -1 || candidateIdIndex === -1) {
+      if (nameIndex === -1 || idIndex === -1) {
         setErrorMessage(
           "The CSV headers must be Full Name and Candidate ID.",
         );
@@ -446,25 +446,21 @@ function CandidateManagementView() {
 
       for (let index = 1; index < lines.length; index += 1) {
         const values = parseCsvLine(lines[index]);
-
-        const importedName = values[fullNameIndex]
+        const importedName = values[nameIndex]
           ?.trim()
           .replace(/s+/g, " ");
-
-        const importedId = normalizeCandidateId(
-          values[candidateIdIndex] || "",
-        );
+        const importedId = normalizeCandidateId(values[idIndex] || "");
 
         if (!importedName || !importedId) {
           invalidCount += 1;
           continue;
         }
 
-        const alreadySeen =
+        const duplicate =
           existingIds.has(importedId) ||
           imported.some((candidate) => candidate.candidateId === importedId);
 
-        if (alreadySeen) {
+        if (duplicate) {
           duplicateCount += 1;
           continue;
         }
@@ -652,10 +648,7 @@ function CandidateManagementView() {
             </p>
 
             <form onSubmit={addCandidate}>
-              <label
-                className="create-mock-label"
-                htmlFor="candidate-full-name"
-              >
+              <label className="create-mock-label" htmlFor="candidate-full-name">
                 Full Name
               </label>
 
@@ -718,4 +711,4 @@ function CandidateManagementView() {
       )}
     </section>
   );
-    }
+}
