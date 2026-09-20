@@ -26,9 +26,9 @@ function loadCandidates() {
     return defaultCandidates;
   }
 
-  const storedCandidates = window.localStorage.getItem(candidateStorageKey);
+  const saved = window.localStorage.getItem(candidateStorageKey);
 
-  if (!storedCandidates) {
+  if (!saved) {
     window.localStorage.setItem(
       candidateStorageKey,
       JSON.stringify(defaultCandidates),
@@ -38,13 +38,13 @@ function loadCandidates() {
   }
 
   try {
-    const parsedCandidates = JSON.parse(storedCandidates);
+    const parsed = JSON.parse(saved);
 
-    if (!Array.isArray(parsedCandidates)) {
-      return defaultCandidates;
+    if (Array.isArray(parsed)) {
+      return parsed;
     }
 
-    return parsedCandidates;
+    return defaultCandidates;
   } catch {
     window.localStorage.setItem(
       candidateStorageKey,
@@ -63,8 +63,8 @@ function saveCandidates(candidates) {
 }
 
 function parseCsvLine(line) {
-  const values = [];
-  let currentValue = "";
+  const result = [];
+  let value = "";
   let insideQuotes = false;
 
   for (let index = 0; index < line.length; index += 1) {
@@ -73,24 +73,20 @@ function parseCsvLine(line) {
     if (character === '"') {
       insideQuotes = !insideQuotes;
     } else if (character === "," && !insideQuotes) {
-      values.push(currentValue.trim());
-      currentValue = "";
+      result.push(value.trim());
+      value = "";
     } else {
-      currentValue += character;
+      value += character;
     }
   }
 
-  values.push(currentValue.trim());
+  result.push(value.trim());
 
-  return values.map((value) => value.replace(/^"|"$/g, "").trim());
+  return result.map((item) => item.replace(/^"|"$/g, "").trim());
 }
 
 export default function AdminDashboardPage() {
   const [activeType, setActiveType] = useState("mock");
-
-  const isMockView = activeType === "mock";
-  const isTestView = activeType === "test";
-  const isCandidateView = activeType === "candidates";
 
   return (
     <main className="dashboard-page">
@@ -114,11 +110,11 @@ export default function AdminDashboardPage() {
         <div className="content-type-switcher" role="tablist">
           <button
             className={`content-type-tab ${
-              isMockView ? "content-type-tab-active" : ""
+              activeType === "mock" ? "content-type-tab-active" : ""
             }`}
             type="button"
             role="tab"
-            aria-selected={isMockView}
+            aria-selected={activeType === "mock"}
             onClick={() => setActiveType("mock")}
           >
             Mock
@@ -126,11 +122,11 @@ export default function AdminDashboardPage() {
 
           <button
             className={`content-type-tab ${
-              isTestView ? "content-type-tab-active" : ""
+              activeType === "test" ? "content-type-tab-active" : ""
             }`}
             type="button"
             role="tab"
-            aria-selected={isTestView}
+            aria-selected={activeType === "test"}
             onClick={() => setActiveType("test")}
           >
             Test
@@ -138,22 +134,24 @@ export default function AdminDashboardPage() {
 
           <button
             className={`content-type-tab ${
-              isCandidateView ? "content-type-tab-active" : ""
+              activeType === "candidates"
+                ? "content-type-tab-active"
+                : ""
             }`}
             type="button"
             role="tab"
-            aria-selected={isCandidateView}
+            aria-selected={activeType === "candidates"}
             onClick={() => setActiveType("candidates")}
           >
             Candidates
           </button>
         </div>
 
-        {isMockView && <MockDashboardView />}
+        {activeType === "mock" && <MockDashboardView />}
 
-        {isTestView && <TestDashboardView />}
+        {activeType === "test" && <TestDashboardView />}
 
-        {isCandidateView && <CandidateManagementView />}
+        {activeType === "candidates" && <CandidateManagementView />}
       </section>
     </main>
   );
@@ -317,16 +315,16 @@ function CandidateManagementView() {
   const [uploadMessage, setUploadMessage] = useState("");
 
   const filteredCandidates = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const search = searchTerm.trim().toLowerCase();
 
-    if (!normalizedSearch) {
+    if (!search) {
       return candidates;
     }
 
     return candidates.filter(
       (candidate) =>
-        candidate.fullName.toLowerCase().includes(normalizedSearch) ||
-        candidate.candidateId.toLowerCase().includes(normalizedSearch),
+        candidate.fullName.toLowerCase().includes(search) ||
+        candidate.candidateId.toLowerCase().includes(search),
     );
   }, [candidates, searchTerm]);
 
@@ -387,9 +385,9 @@ function CandidateManagementView() {
     closeForm();
   }
 
-  function removeCandidate(candidateToRemove) {
+  function removeCandidate(id) {
     const updatedCandidates = candidates.filter(
-      (candidate) => candidate.id !== candidateToRemove,
+      (candidate) => candidate.id !== id,
     );
 
     updateCandidates(updatedCandidates);
@@ -398,16 +396,14 @@ function CandidateManagementView() {
   function handleCsvUpload(event) {
     const file = event.target.files?.[0];
 
-    setUploadMessage("");
     setErrorMessage("");
+    setUploadMessage("");
 
     if (!file) {
       return;
     }
 
-    const validFile = /.(csv)$/i.test(file.name);
-
-    if (!validFile) {
+    if (!/.csv$/i.test(file.name)) {
       event.target.value = "";
       setErrorMessage("Please upload a CSV file.");
       return;
@@ -417,12 +413,12 @@ function CandidateManagementView() {
 
     reader.onload = () => {
       const text = String(reader.result || "");
+
       const lines = text
-        .split(/
-?
-/)
+        .split("
+")
         .map((line) => line.trim())
-        .filter(Boolean);
+        .filter((line) => line.length > 0);
 
       if (lines.length < 2) {
         setErrorMessage("The CSV must include a header and at least one row.");
@@ -444,58 +440,61 @@ function CandidateManagementView() {
         candidates.map((candidate) => candidate.candidateId),
       );
 
-      const importedCandidates = [];
+      const imported = [];
       let duplicateCount = 0;
       let invalidCount = 0;
 
       for (let index = 1; index < lines.length; index += 1) {
         const values = parseCsvLine(lines[index]);
+
         const importedName = values[fullNameIndex]
           ?.trim()
           .replace(/s+/g, " ");
-        const importedId = normalizeCandidateId(values[candidateIdIndex] || "");
+
+        const importedId = normalizeCandidateId(
+          values[candidateIdIndex] || "",
+        );
 
         if (!importedName || !importedId) {
           invalidCount += 1;
           continue;
         }
 
-        if (
+        const alreadySeen =
           existingIds.has(importedId) ||
-          importedCandidates.some(
-            (candidate) => candidate.candidateId === importedId,
-          )
-        ) {
+          imported.some((candidate) => candidate.candidateId === importedId);
+
+        if (alreadySeen) {
           duplicateCount += 1;
           continue;
         }
 
-        importedCandidates.push({
+        imported.push({
           id: `candidate-${Date.now()}-${index}`,
           fullName: importedName,
           candidateId: importedId,
         });
       }
 
-      if (importedCandidates.length === 0) {
+      if (imported.length === 0) {
         setErrorMessage(
           "No new Candidates were imported. Check the file or existing Candidate IDs.",
         );
         return;
       }
 
-      updateCandidates([...candidates, ...importedCandidates]);
+      updateCandidates([...candidates, ...imported]);
 
       setUploadMessage(
-        `${importedCandidates.length} Candidate(s) imported. ${duplicateCount} duplicate row(s) skipped. ${invalidCount} invalid row(s) skipped.`,
+        `${imported.length} Candidate(s) imported. ${duplicateCount} duplicate row(s) skipped. ${invalidCount} invalid row(s) skipped.`,
       );
 
       event.target.value = "";
     };
 
     reader.onerror = () => {
-      setErrorMessage("The CSV file could not be read.");
       event.target.value = "";
+      setErrorMessage("The CSV file could not be read.");
     };
 
     reader.readAsText(file);
@@ -540,6 +539,7 @@ function CandidateManagementView() {
 
         <label className="candidate-upload-button">
           Choose CSV file
+
           <input
             type="file"
             accept=".csv"
@@ -652,7 +652,10 @@ function CandidateManagementView() {
             </p>
 
             <form onSubmit={addCandidate}>
-              <label className="create-mock-label" htmlFor="candidate-full-name">
+              <label
+                className="create-mock-label"
+                htmlFor="candidate-full-name"
+              >
                 Full Name
               </label>
 
@@ -715,4 +718,4 @@ function CandidateManagementView() {
       )}
     </section>
   );
-}
+    }
