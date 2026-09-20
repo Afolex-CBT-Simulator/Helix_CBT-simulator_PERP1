@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-const initialCandidates = [
+const candidateStorageKey = "helix_registered_candidates";
+
+const defaultCandidates = [
   {
     id: "candidate-1",
     fullName: "Sample Candidate",
@@ -13,6 +15,47 @@ const initialCandidates = [
 
 function normalizeCandidateId(value) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function loadCandidates() {
+  if (typeof window === "undefined") {
+    return defaultCandidates;
+  }
+
+  const savedCandidates = window.localStorage.getItem(candidateStorageKey);
+
+  if (!savedCandidates) {
+    window.localStorage.setItem(
+      candidateStorageKey,
+      JSON.stringify(defaultCandidates),
+    );
+
+    return defaultCandidates;
+  }
+
+  try {
+    const parsedCandidates = JSON.parse(savedCandidates);
+
+    if (!Array.isArray(parsedCandidates)) {
+      return defaultCandidates;
+    }
+
+    return parsedCandidates;
+  } catch {
+    window.localStorage.setItem(
+      candidateStorageKey,
+      JSON.stringify(defaultCandidates),
+    );
+
+    return defaultCandidates;
+  }
+}
+
+function saveCandidates(candidates) {
+  window.localStorage.setItem(
+    candidateStorageKey,
+    JSON.stringify(candidates),
+  );
 }
 
 export default function AdminDashboardPage() {
@@ -238,12 +281,19 @@ function TestDashboardView() {
 }
 
 function CandidateManagementView() {
-  const [candidates, setCandidates] = useState(initialCandidates);
+  const [candidates, setCandidates] = useState(defaultCandidates);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [fullName, setFullName] = useState("");
   const [candidateId, setCandidateId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+
+  if (!hasLoaded && typeof window !== "undefined") {
+    const storedCandidates = loadCandidates();
+    setCandidates(storedCandidates);
+    setHasLoaded(true);
+  }
 
   const filteredCandidates = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -297,24 +347,27 @@ function CandidateManagementView() {
       return;
     }
 
-    setCandidates([
+    const updatedCandidates = [
       ...candidates,
       {
         id: `candidate-${Date.now()}`,
         fullName: cleanedName,
         candidateId: normalizedId,
       },
-    ]);
+    ];
 
+    setCandidates(updatedCandidates);
+    saveCandidates(updatedCandidates);
     closeForm();
   }
 
   function removeCandidate(candidateIdToRemove) {
-    setCandidates(
-      candidates.filter(
-        (candidate) => candidate.id !== candidateIdToRemove,
-      ),
+    const updatedCandidates = candidates.filter(
+      (candidate) => candidate.id !== candidateIdToRemove,
     );
+
+    setCandidates(updatedCandidates);
+    saveCandidates(updatedCandidates);
   }
 
   return (
@@ -387,11 +440,13 @@ function CandidateManagementView() {
                 {filteredCandidates.map((candidate) => (
                   <tr key={candidate.id}>
                     <td>{candidate.fullName}</td>
+
                     <td>
                       <span className="candidate-id-value">
                         {candidate.candidateId}
                       </span>
                     </td>
+
                     <td>
                       <button
                         className="candidate-history-button"
@@ -400,6 +455,7 @@ function CandidateManagementView() {
                         View activity
                       </button>
                     </td>
+
                     <td>
                       <button
                         className="candidate-remove-button"
@@ -503,4 +559,4 @@ function CandidateManagementView() {
       )}
     </section>
   );
-    }
+            }
