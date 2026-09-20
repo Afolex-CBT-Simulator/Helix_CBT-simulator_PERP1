@@ -15,6 +15,10 @@ function normalizeCandidateId(value) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+function normalizeFullName(value) {
+  return value.trim().replace(/s+/g, " ").toLowerCase();
+}
+
 export default function StudentEntryPage() {
   const router = useRouter();
 
@@ -25,11 +29,13 @@ export default function StudentEntryPage() {
   function handleSubmit(event) {
     event.preventDefault();
 
-    const cleanedName = fullName.trim();
+    const cleanedName = normalizeFullName(fullName);
     const normalizedCandidateId = normalizeCandidateId(candidateId);
 
+    setErrorMessage("");
+
     if (!cleanedName) {
-      setErrorMessage("Please enter your full name.");
+      setErrorMessage("Please enter your Full Name.");
       return;
     }
 
@@ -40,7 +46,8 @@ export default function StudentEntryPage() {
 
     const matchedCandidate = temporaryCandidates.find(
       (candidate) =>
-        normalizeCandidateId(candidate.candidateId) === normalizedCandidateId,
+        normalizeCandidateId(candidate.candidateId) ===
+        normalizedCandidateId,
     );
 
     if (!matchedCandidate) {
@@ -50,18 +57,26 @@ export default function StudentEntryPage() {
       return;
     }
 
-    const candidateDetails = {
-      id: normalizedCandidateId,
+    const enteredNameMatches =
+      normalizeFullName(matchedCandidate.fullName) === cleanedName;
+
+    if (!enteredNameMatches) {
+      setErrorMessage(
+        "The Full Name does not match this Candidate ID. Please check your details and try again.",
+      );
+      return;
+    }
+
+    const candidateSession = {
       fullName: matchedCandidate.fullName,
-      candidateId: normalizedCandidateId,
+      candidateId: normalizeCandidateId(matchedCandidate.candidateId),
     };
 
     window.sessionStorage.setItem(
-      "helix_candidate_details",
-      JSON.stringify(candidateDetails),
+      "helix_candidate_session",
+      JSON.stringify(candidateSession),
     );
 
-    setErrorMessage("");
     router.push("/student/dashboard");
   }
 
@@ -77,7 +92,7 @@ export default function StudentEntryPage() {
         <h1>Candidate Login</h1>
 
         <p className="login-description">
-          Enter your registered name and Candidate ID to continue.
+          Enter your registered details to access the Student Dashboard.
         </p>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
@@ -109,7 +124,7 @@ export default function StudentEntryPage() {
               setCandidateId(event.target.value);
               setErrorMessage("");
             }}
-            placeholder="Example: HOT-2027-001"
+            placeholder="Example: HOT2027001"
             autoComplete="off"
           />
 
@@ -124,10 +139,14 @@ export default function StudentEntryPage() {
           </button>
         </form>
 
+        <p className="candidate-help-text">
+          If you are not registered, please contact your instructor.
+        </p>
+
         <Link href="/" className="back-link">
           ← Back to home
         </Link>
       </section>
     </main>
   );
-    }
+              }
