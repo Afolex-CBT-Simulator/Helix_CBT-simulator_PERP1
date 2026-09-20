@@ -1659,3 +1659,8 @@ h1 span {
     width: 100%;
   }
 }
+.test-page-success {
+  max-width: 1180px;
+  margin: 20px auto 0;
+  text-align: left;
+}
