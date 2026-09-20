@@ -4,12 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-const temporaryCandidates = [
-  {
-    fullName: "Sample Candidate",
-    candidateId: "HOT2027001",
-  },
-];
+const candidateStorageKey = "helix_registered_candidates";
 
 function normalizeCandidateId(value) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -17,6 +12,22 @@ function normalizeCandidateId(value) {
 
 function normalizeFullName(value) {
   return value.trim().replace(/s+/g, " ").toLowerCase();
+}
+
+function loadCandidates() {
+  const storedCandidates = window.localStorage.getItem(candidateStorageKey);
+
+  if (!storedCandidates) {
+    return [];
+  }
+
+  try {
+    const parsedCandidates = JSON.parse(storedCandidates);
+
+    return Array.isArray(parsedCandidates) ? parsedCandidates : [];
+  } catch {
+    return [];
+  }
 }
 
 export default function StudentEntryPage() {
@@ -44,10 +55,11 @@ export default function StudentEntryPage() {
       return;
     }
 
-    const matchedCandidate = temporaryCandidates.find(
+    const candidates = loadCandidates();
+
+    const matchedCandidate = candidates.find(
       (candidate) =>
-        normalizeCandidateId(candidate.candidateId) ===
-        normalizedCandidateId,
+        candidate.candidateId === normalizedCandidateId,
     );
 
     if (!matchedCandidate) {
@@ -68,8 +80,9 @@ export default function StudentEntryPage() {
     }
 
     const candidateSession = {
+      id: matchedCandidate.id,
       fullName: matchedCandidate.fullName,
-      candidateId: normalizeCandidateId(matchedCandidate.candidateId),
+      candidateId: matchedCandidate.candidateId,
     };
 
     window.sessionStorage.setItem(
