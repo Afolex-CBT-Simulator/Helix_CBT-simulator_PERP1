@@ -1388,3 +1388,33 @@ h1 span {
     flex: 1;
   }
   }
+.file-input {
+  padding: 11px 12px;
+  background: var(--white);
+  cursor: pointer;
+}
+
+.file-help-text {
+  margin-top: 7px;
+  color: var(--muted-blue);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.selected-file-text {
+  margin-top: 8px;
+  color: var(--deep-blue);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.imported-settings {
+  margin-top: 3px;
+}
+
+.mode-option:has(input:checked) {
+  border-color: var(--mid-blue);
+  background: var(--pale-blue);
+}
