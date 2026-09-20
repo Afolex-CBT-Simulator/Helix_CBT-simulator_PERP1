@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 export default function Home() {
@@ -83,17 +84,16 @@ export default function Home() {
               Select the portal that matches your role.
             </p>
 
-            <div className="portal-options">
-              <button className="portal-card" type="button">
-                <span className="portal-icon">A</span>
+           <Link href="/admin" className="portal-card">
+  <span className="portal-icon">A</span>
 
-                <span className="portal-text">
-                  <strong>Admin Portal</strong>
-                  <small>Create and manage mock tests</small>
-                </span>
+  <span className="portal-text">
+    <strong>Admin Portal</strong>
+    <small>Create and manage mock tests</small>
+  </span>
 
-                <span className="portal-arrow">→</span>
-              </button>
+  <span className="portal-arrow">→</span>
+</Link>
 
               <button className="portal-card" type="button">
                 <span className="portal-icon">S</span>
