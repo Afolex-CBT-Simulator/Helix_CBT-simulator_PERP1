@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-const availableSubjects = [
+const subjects = [
   "Mathematics",
   "English",
   "Physics",
@@ -18,144 +18,217 @@ const availableSubjects = [
   "IRS",
 ];
 
-const acceptedFileTypes = ".pdf,.docx,.txt";
 const maximumFileSize = 10 * 1024 * 1024;
 
 export default function MockSetupPage() {
-  const [selectedSubjects, setSelectedSubjects] = useState([]);
+  const [mockName, setMockName] = useState("Mock 1.0");
+  const [maxTabSwitches, setMaxTabSwitches] = useState("3");
+  const [returnCountdown, setReturnCountdown] = useState("10");
+
+  const [savedSubjects, setSavedSubjects] = useState([]);
   const [showSubjectForm, setShowSubjectForm] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState("");
-  const [mode, setMode] = useState("");
-  const [difficulty, setDifficulty] = useState("");
+
+  const [subject, setSubject] = useState("");
+  const [subjectMode, setSubjectMode] = useState("");
+  const [subjectTime, setSubjectTime] = useState("");
+  const [fileName, setFileName] = useState("");
   const [questionCount, setQuestionCount] = useState("");
-  const [timeAllocated, setTimeAllocated] = useState("");
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [difficulty, setDifficulty] = useState("");
   const [importedDifficulty, setImportedDifficulty] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const availableSubjects = subjects.filter(
+    (item) => !savedSubjects.some((saved) => saved.name === item),
+  );
+
+  const syncedSubjectCount = savedSubjects.filter(
+    (savedSubject) => savedSubject.synced,
+  ).length;
+
+  function resetSubjectForm() {
+setSubject("");
+    setSubjectMode("");
+    setSubjectTime("");
+    setFileName("");
+    setQuestionCount("");
+    setDifficulty("");
+    setImportedDifficulty("");
+    setError("");
+  }
 
   function openSubjectForm() {
+    resetSubjectForm();
     setShowSubjectForm(true);
-    setSelectedSubject("");
-    setMode("");
-    setDifficulty("");
-    setQuestionCount("");
-    setTimeAllocated("");
-    setSelectedFile(null);
-    setImportedDifficulty("");
-    setErrorMessage("");
   }
 
   function closeSubjectForm() {
     setShowSubjectForm(false);
-    setErrorMessage("");
+    resetSubjectForm();
   }
 
   function handleFileChange(event) {
     const file = event.target.files?.[0];
 
     if (!file) {
-      setSelectedFile(null);
+      setFileName("");
+      return;
+    }
+
+    const validFile = /.(pdf|docx|txt)$/i.test(file.name);
+
+    if (!validFile) {
+      event.target.value = "";
+      setFileName("");
+      setError("Only PDF, DOCX, and TXT files are accepted.");
       return;
     }
 
     if (file.size > maximumFileSize) {
-      setSelectedFile(null);
-      setErrorMessage("The file must be 10 MB or smaller.");
       event.target.value = "";
+      setFileName("");
+      setError("The file must be 10 MB or smaller.");
       return;
     }
 
-    const validExtension = /.(pdf|docx|txt)$/i.test(file.name);
-
-    if (!validExtension) {
-      setSelectedFile(null);
-      setErrorMessage("Only PDF, DOCX, and TXT files are accepted.");
-      event.target.value = "";
-      return;
-    }
-
-    setSelectedFile(file);
-    setErrorMessage("");
+    setFileName(file.name);
+    setError("");
   }
 
   function saveSubject(event) {
     event.preventDefault();
 
-    if (!selectedSubject) {
-      setErrorMessage("Please select a subject.");
+    if (!subject) {
+      setError("Please select a subject.");
       return;
     }
 
-    if (!mode) {
-      setErrorMessage("Please select how you are providing questions.");
+    if (!subjectMode) {
+      setError("Please choose Imported or Generate from Notes.");
       return;
     }
 
-    if (!selectedFile) {
-      setErrorMessage("Please upload a file for this subject.");
+    if (!fileName) {
+      setError("Please upload a PDF, DOCX, or TXT file.");
       return;
     }
 
-    if (!timeAllocated || Number(timeAllocated) <= 0) {
-      setErrorMessage("Please enter a valid time allocation.");
+    if (!subjectTime || Number(subjectTime) < 1) {
+      setError("Please enter a valid time allocation.");
       return;
     }
 
-    if (mode === "generated") {
-      if (!questionCount || Number(questionCount) <= 0) {
-        setErrorMessage("Please enter the number of questions to generate.");
+    if (subjectMode === "generated") {
+      if (!questionCount || Number(questionCount) < 1) {
+        setError("Please enter the number of questions to generate.");
         return;
       }
 
       if (!difficulty) {
-        setErrorMessage("Please select a generation difficulty.");
+        setError("Please select a generation difficulty.");
         return;
       }
     }
 
-    const subjectAlreadyAdded = selectedSubjects.some(
-      (subject) => subject.name === selectedSubject,
+    const newSubject = {
+      name: subject,
+      mode: subjectMode,
+      time: subjectTime,
+      fileName,
+      questionCount:
+        subjectMode === "generated" ? questionCount : "From file",
+      difficulty:
+        subjectMode === "generated"
+          ? difficulty
+          : importedDifficulty || "No tag",
+      status: "Draft",
+      synced: false,
+    };
+
+    setSavedSubjects([...savedSubjects, newSubject]);
+    closeSubjectForm();
+  }
+
+  function toggleSync(subjectName) {
+    setSavedSubjects(
+      savedSubjects.map((savedSubject) => {
+        if (savedSubject.name !== subjectName) {
+          return savedSubject;
+        }
+
+        if (savedSubject.status !== "Ready" && !savedSubject.synced) {
+          return {
+            ...savedSubject,
+            status: "Ready",
+          };
+        }
+
+        const nextSynced = !savedSubject.synced;
+
+        return {
+          ...savedSubject,
+          synced: nextSynced,
+          status: nextSynced ? "Synced" : "Ready",
+        };
+      }),
     );
 
-    if (subjectAlreadyAdded) {
-      setErrorMessage("This subject has already been added.");
-      return;
-    }
+    setSuccess("");
+  }
 
-    setSelectedSubjects([
-      ...selectedSubjects,
-      {
-        name: selectedSubject,
-        mode,
-        difficulty: mode === "generated" ? difficulty : importedDifficulty,
-        questionCount: mode === "generated" ? questionCount : "",
-        time: timeAllocated,
-        fileName: selectedFile.name,
-        status: "Draft",
-      },
-    ]);
+  function markReady(subjectName) {
+    setSavedSubjects(
+      savedSubjects.map((savedSubject) =>
+        savedSubject.name === subjectName
+          ? {
+              ...savedSubject,
+              status: "Ready",
+            }
+          : savedSubject,
+      ),
+    );
 
-    setShowSubjectForm(false);
-    setSelectedSubject("");
-    setMode("");
-    setDifficulty("");
-    setQuestionCount("");
-    setTimeAllocated("");
-    setSelectedFile(null);
-    setImportedDifficulty("");
-    setErrorMessage("");
+    setSuccess("");
   }
 
   function removeSubject(subjectName) {
-    setSelectedSubjects(
-      selectedSubjects.filter((subject) => subject.name !== subjectName),
+    setSavedSubjects(
+      savedSubjects.filter((savedSubject) => savedSubject.name !== subjectName),
     );
+
+    setSuccess("");
   }
 
-  const availableSubjectOptions = availableSubjects.filter(
-    (subject) =>
-      !selectedSubjects.some((selected) => selected.name === subject),
-  );
+  function saveMockSettings(event) {
+    event.preventDefault();
+
+    if (!mockName.trim()) {
+      setError("Please enter a name for the Mock.");
+      return;
+    }
+
+    if (savedSubjects.length < 4) {
+      setError("A Mock needs at least four subjects before publishing.");
+      return;
+    }
+
+    if (Number(maxTabSwitches) < 0) {
+      setError("Maximum tab switches cannot be negative.");
+      return;
+    }
+
+    if (Number(returnCountdown) < 1) {
+      setError("Return countdown must be at least one second.");
+      return;
+    }
+
+    setError("");
+    setSuccess("Mock settings saved locally for review.");
+  }
+
+  const canPublish =
+    savedSubjects.length >= 4 && syncedSubjectCount >= 4;
 
   return (
     <main className="mock-setup-page">
@@ -167,11 +240,11 @@ export default function MockSetupPage() {
 
           <p className="setup-kicker">MOCK SETUP</p>
 
-          <h1>Mock 1.0</h1>
+          <h1>{mockName || "New Mock"}</h1>
 
           <p className="setup-description">
-            Add subjects and configure how each question bank will be
-            provided.
+            Build a full four-subject CBT simulation. Students will choose
+            exactly four synced subjects before starting.
           </p>
         </div>
 
@@ -179,150 +252,244 @@ export default function MockSetupPage() {
       </header>
 
       <section className="setup-content">
-        <div className="setup-step-card">
-          <div className="step-number">1</div>
+        <form onSubmit={saveMockSettings}>
+          <section className="test-settings-card">
+            <p className="section-label section-label-light">MOCK DETAILS</p>
 
-          <div>
-            <p className="step-label">CURRENT STEP</p>
+            <h2>Mock settings</h2>
 
-            <h2>Add subjects to this mock</h2>
+            <label className="create-mock-label" htmlFor="mock-name">
+              Mock name
+            </label>
 
-            <p>
-              A mock must have at least four synced subjects before it can be
-              published.
-            </p>
-          </div>
-        </div>
+            <input
+              id="mock-name"
+              className="create-mock-input"
+              type="text"
+              value={mockName}
+              onChange={(event) => {
+                setMockName(event.target.value);
+                setError("");
+                setSuccess("");
+              }}
+              placeholder="Example: Mock 1.0"
+            />
 
-        <section className="subjects-section">
-          <div className="section-heading-row">
-            <div>
+            <div className="tab-policy-heading">
               <p className="section-label section-label-light">
-                SUBJECT CONFIGURATION
+                TAB-SWITCH POLICY
               </p>
 
-              <h2>Subjects</h2>
+              <p>
+                These settings will be copied to each Attempt when the Mock
+                begins.
+              </p>
+            </div>
+
+            <div className="tab-policy-grid">
+              <div>
+                <label
+                  className="create-mock-label"
+                  htmlFor="mock-max-switches"
+                >
+                  Max Tab Switches Allowed
+              </label>
+
+                <input
+                  id="mock-max-switches"
+                  className="create-mock-input"
+                  type="number"
+                  min="0"
+                  value={maxTabSwitches}
+                  onChange={(event) => {
+                    setMaxTabSwitches(event.target.value);
+                    setError("");
+                    setSuccess("");
+                  }}
+                />
+              </div>
+
+              <div>
+                <label
+                  className="create-mock-label"
+                  htmlFor="mock-countdown"
+                >
+                  Return Countdown in Seconds
+                </label>
+
+                <input
+                  id="mock-countdown"
+                  className="create-mock-input"
+                  type="number"
+                  min="1"
+                  value={returnCountdown}
+                  onChange={(event) => {
+                    setReturnCountdown(event.target.value);
+                    setError("");
+                    setSuccess("");
+                  }}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="subjects-section">
+                              <div className="section-heading-row">
+              <div>
+                <p className="section-label section-label-light">
+                  SUBJECT CONFIGURATION
+                </p>
+
+                <h2>Subjects</h2>
+
+                <p className="setup-counter">
+                  {syncedSubjectCount} of 4 synced subjects required for
+                  publishing
+                </p>
+              </div>
+
+              <button
+                className="dashboard-primary-button setup-add-button"
+                type="button"
+                onClick={openSubjectForm}
+                disabled={availableSubjects.length === 0}
+              >
+                + Add Subject
+              </button>
+            </div>
+
+            {savedSubjects.length === 0 ? (
+              <div className="setup-empty-card">
+                <div className="empty-icon">+</div>
+
+                <h2>No subjects added</h2>
+
+                <p>
+                  Add at least four subjects, then review and mark each one
+                  Ready before syncing it.
+                </p>
+
+                <button
+                  className="dashboard-secondary-button"
+                  type="button"
+                  onClick={openSubjectForm}
+                >
+                  Add First Subject
+                </button>
+              </div>
+            ) : (
+              <div className="subject-config-list">
+                {savedSubjects.map((savedSubject) => (
+                  <article
+                    className="subject-config-card"
+                    key={savedSubject.name}
+                  >
+                    <div className="subject-card-heading">
+                      <div>
+                        <h3>{savedSubject.name}</h3>
+
+                        <div className="subject-badge-row">
+                          <span className="mode-badge">
+                            {savedSubject.mode === "imported"
+                              ? "Imported"
+                              : "AI Generated"}
+                          </span>
+
+                          <span className="subject-status-badge">
+                            {savedSubject.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="subject-details">
+                      <span>
+                        Time: <strong>{savedSubject.time} minutes</strong>
+                      </span>
+
+                      <span>
+                        Questions:{" "}
+                        <strong>{savedSubject.questionCount}</strong>
+                      </span>
+                      <span>
+                        File: <strong>{savedSubject.fileName}</strong>
+                      </span>
+                    </div>
+
+                    <div className="subject-card-actions">
+                      <button
+                        className="subject-remove-button"
+                        type="button"
+                        onClick={() => removeSubject(savedSubject.name)}
+                      >
+                        Remove
+                      </button>
+
+                      {!savedSubject.synced && (
+                        <button
+                          className="subject-review-button"
+                          type="button"
+                          onClick={() => markReady(savedSubject.name)}
+                        >
+                          Mark Ready
+                        </button>
+                      )}
+
+                      <button
+                        className={`sync-toggle ${
+                          savedSubject.synced ? "sync-toggle-on" : ""
+                        }`}
+                        type="button"
+                        onClick={() => toggleSync(savedSubject.name)}
+                      >
+                        {savedSubject.synced ? "Synced" : "Sync ON"}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="setup-next-step-card">
+            <div>
+              <p className="section-label
+              section-label-light">PUBLISH</p>
+
+              <h2>
+                {canPublish
+                  ? "This Mock is ready to publish"
+                  : "Mock publishing is locked"}
+              </h2>
+
+              <p>
+                {canPublish
+                  ? "At least four subjects are synced and available."
+                  : "You need at least four synced subjects before publishing."}
+              </p>
             </div>
 
             <button
-              className="dashboard-primary-button setup-add-button"
-              type="button"
-              onClick={openSubjectForm}
-              disabled={availableSubjectOptions.length === 0}
+              className="dashboard-primary-button"
+              type="submit"
+              disabled={!canPublish}
             >
-              + Add Subject
+              Publish Mock
             </button>
-          </div>
+          </section>
 
-          {selectedSubjects.length === 0 ? (
-            <div className="setup-empty-card">
-              <div className="empty-icon">+</div>
-
-              <h2>No subjects added</h2>
-
-              <p>
-                Add Mathematics, English, or another approved subject to begin
-                configuring this mock.
-              </p>
-
-              <button
-                className="dashboard-secondary-button"
-                type="button"
-                onClick={openSubjectForm}
-              >
-                Add First Subject
-              </button>
-            </div>
-          ) : (
-            <div className="subject-config-list">
-              {selectedSubjects.map((subject) => (
-                <article className="subject-config-card" key={subject.name}>
-                  <div className="subject-card-heading">
-                    <div>
-                      <h3>{subject.name}</h3>
-
-                      <p>
-                        {subject.mode === "imported"
-                          ? "Imported question file"
-                          : "Generated from notes"}
-                      </p>
-                    </div>
-
-                    <span className="subject-status-badge">
-                      {subject.status}
-                    </span>
-                  </div>
-
-                  <div className="subject-details">
-                    <span>
-                      Mode:{" "}
-                      <strong>
-                        {subject.mode === "imported"
-                          ? "Imported"
-                          : "AI Generated"}
-                      </strong>
-                    </span>
-
-                    {subject.difficulty && (
-                      <span>
-                        Difficulty: <strong>{subject.difficulty}</strong>
-                      </span>
-                    )}
-
-                    {subject.questionCount && (
-                      <span>
-                        Questions: <strong>{subject.questionCount}</strong>
-                      </span>
-                    )}
-
-                    <span>
-                      Time: <strong>{subject.time} minutes</strong>
-                    </span>
-
-                    <span>
-                      File: <strong>{subject.fileName}</strong>
-                    </span>
-                  </div>
-
-                  <div className="subject-card-actions">
-                    <button
-                      className="subject-remove-button"
-                      type="button"
-                      onClick={() => removeSubject(subject.name)}
-                    >
-                      Remove
-                    </button>
-
-                    <button className="subject-review-button" type="button">
-                      Configure
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="setup-next-step-card">
-          <div>
-            <p className="section-label section-label-light">NEXT STEP</p>
-
-            <h2>Preview and sync subjects</h2>
-
-            <p>
-              Subject review, question validation, and synchronization will be
-              added next.
+          {error && (
+            <p className="create-mock-error test-page-error" role="alert">
+              {error}
             </p>
-          </div>
+          )}
 
-          <button
-            className="dashboard-primary-button"
-            type="button"
-            disabled={selectedSubjects.length < 4}
-          >
-            Continue to Review
-          </button>
-        </section>
+          {success && (
+            <p className="login-success test-page-success" role="status">
+              {success}
+            </p>
+          )}
+        </form>
       </section>
 
       {showSubjectForm && (
@@ -342,29 +509,29 @@ export default function MockSetupPage() {
             <h2>Configure a subject</h2>
 
             <p className="create-modal-description">
-              Choose the subject first, then select how questions will be
-              provided.
+              Choose the subject and how its questions will be provided.
             </p>
 
             <form onSubmit={saveSubject}>
-              <label className="create-mock-label" htmlFor="subject">
+              <label className="create-mock-label"
+       htmlFor="mock-subject">
                 Subject
               </label>
 
               <select
-                id="subject"
+                id="mock-subject"
                 className="create-mock-input"
-                value={selectedSubject}
+                value={subject}
                 onChange={(event) => {
-                  setSelectedSubject(event.target.value);
-                  setErrorMessage("");
+                  setSubject(event.target.value);
+                  setError("");
                 }}
               >
                 <option value="">Select a subject</option>
 
-                {availableSubjectOptions.map((subject) => (
-                  <option value={subject} key={subject}>
-                    {subject}
+                {availableSubjects.map((item) => (
+                  <option value={item} key={item}>
+                    {item}
                   </option>
                 ))}
               </select>
@@ -377,14 +544,14 @@ export default function MockSetupPage() {
                 <label className="mode-option">
                   <input
                     type="radio"
-                    name="question-mode"
+                    name="mock-subject-mode"
                     value="imported"
-                    checked={mode === "imported"}
+                    checked={subjectMode === "imported"}
                     onChange={(event) => {
-                      setMode(event.target.value);
-                      setDifficulty("");
+                      setSubjectMode(event.target.value);
                       setQuestionCount("");
-                      setErrorMessage("");
+                      setDifficulty("");
+                      setError("");
                     }}
                   />
 
@@ -392,7 +559,7 @@ export default function MockSetupPage() {
                     <strong>Import Ready-Made</strong>
 
                     <small>
-                      Upload a complete question file with answers and
+                      Upload complete questions, options, answers, and
                       explanations.
                     </small>
                   </span>
@@ -401,12 +568,12 @@ export default function MockSetupPage() {
                 <label className="mode-option">
                   <input
                     type="radio"
-                    name="question-mode"
+                    name="mock-subject-mode"
                     value="generated"
-                    checked={mode === "generated"}
+                    checked={subjectMode === "generated"}
                     onChange={(event) => {
-                      setMode(event.target.value);
-                      setErrorMessage("");
+                      setSubjectMode(event.target.value);
+                      setError("");
                     }}
                   />
 
@@ -414,23 +581,21 @@ export default function MockSetupPage() {
                     <strong>Generate from Notes</strong>
 
                     <small>
-                      Upload notes and let the Neural Engine create questions.
+                      Upload notes and configure question generation.
                     </small>
                   </span>
                 </label>
               </fieldset>
 
-              <label className="create-mock-label" htmlFor="subject-file">
-                {mode === "generated"
-                  ? "Notes/content file"
-                  : "Ready-made question file"}
+              <label className="create-mock-label" htmlFor="mock-file">
+                Upload file
               </label>
 
               <input
-                id="subject-file"
+                id="mock-file"
                 className="create-mock-input file-input"
                 type="file"
-                accept={acceptedFileTypes}
+                accept=".pdf,.docx,.txt"
                 onChange={handleFileChange}
               />
 
@@ -438,13 +603,13 @@ export default function MockSetupPage() {
                 Accepted formats: PDF, DOCX, or TXT. Maximum size: 10 MB.
               </p>
 
-              {selectedFile && (
+              {fileName && (
                 <p className="selected-file-text">
-                  Selected file: {selectedFile.name}
+                  Selected file: {fileName}
                 </p>
               )}
 
-              {mode === "imported" && (
+              {subjectMode === "imported" && (
                 <div className="imported-settings">
                   <label
                     className="create-mock-label"
@@ -458,7 +623,7 @@ export default function MockSetupPage() {
                     className="create-mock-input"
                     value={importedDifficulty}
                     onChange={(event) =>
-                      setImportedDifficulty(event.target.value)
+                                          setImportedDifficulty(event.target.value)
                     }
                   >
                     <option value="">No difficulty tag</option>
@@ -470,36 +635,42 @@ export default function MockSetupPage() {
                 </div>
               )}
 
-              {mode === "generated" && (
+              {subjectMode === "generated" && (
                 <div className="generated-settings">
-                  <label className="create-mock-label" htmlFor="question-count">
+                  <label
+                    className="create-mock-label"
+                    htmlFor="mock-question-count"
+                  >
                     Number of questions
                   </label>
 
                   <input
-                    id="question-count"
+                    id="mock-question-count"
                     className="create-mock-input"
                     type="number"
                     min="1"
                     value={questionCount}
                     onChange={(event) => {
                       setQuestionCount(event.target.value);
-                      setErrorMessage("");
+                      setError("");
                     }}
                     placeholder="Example: 40"
                   />
 
-                  <label className="create-mock-label" htmlFor="difficulty">
+                  <label
+                    className="create-mock-label"
+                    htmlFor="mock-difficulty"
+                  >
                     Difficulty
                   </label>
 
                   <select
-                    id="difficulty"
+                    id="mock-difficulty"
                     className="create-mock-input"
                     value={difficulty}
                     onChange={(event) => {
                       setDifficulty(event.target.value);
-                      setErrorMessage("");
+                      setError("");
                     }}
                   >
                     <option value="">Select difficulty</option>
@@ -511,26 +682,27 @@ export default function MockSetupPage() {
                 </div>
               )}
 
-              <label className="create-mock-label" htmlFor="time-allocated">
+              <label className="create-mock-label"
+htmlFor="mock-time">
                 Time allocation in minutes
               </label>
 
               <input
-                id="time-allocated"
+                id="mock-time"
                 className="create-mock-input"
                 type="number"
                 min="1"
-                value={timeAllocated}
+                value={subjectTime}
                 onChange={(event) => {
-                  setTimeAllocated(event.target.value);
-                  setErrorMessage("");
+                  setSubjectTime(event.target.value);
+                  setError("");
                 }}
                 placeholder="Example: 45"
               />
 
-              {errorMessage && (
+              {error && (
                 <p className="create-mock-error" role="alert">
-                  {errorMessage}
+                  {error}
                 </p>
               )}
 
@@ -553,4 +725,4 @@ export default function MockSetupPage() {
       )}
     </main>
   );
-              }
+}
