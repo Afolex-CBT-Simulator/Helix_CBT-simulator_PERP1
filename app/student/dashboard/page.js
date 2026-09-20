@@ -6,83 +6,98 @@ import { useEffect, useState } from "react";
 export default function StudentDashboardPage() {
   const [candidate, setCandidate] = useState(null);
   const [activeType, setActiveType] = useState("mock");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedCandidate = window.sessionStorage.getItem(
+    const storedCandidate = window.sessionStorage.getItem(
       "helix_candidate_session",
     );
 
-    if (!savedCandidate) {
+    if (!storedCandidate) {
       window.location.href = "/student";
       return;
     }
 
     try {
-      setCandidate(JSON.parse(savedCandidate));
+      const parsedCandidate = JSON.parse(storedCandidate);
+      setCandidate(parsedCandidate);
     } catch {
       window.sessionStorage.removeItem("helix_candidate_session");
       window.location.href = "/student";
+      return;
     }
+
+    setIsLoading(false);
   }, []);
 
-  function handleExit() {
+  function exitDashboard() {
     window.sessionStorage.removeItem("helix_candidate_session");
     window.location.href = "/";
   }
 
-  if (!candidate) {
+  if (isLoading) {
     return (
-      <main className="student-dashboard-page">
-        <section className="student-loading-card">
-          <p>Loading Candidate Dashboard...</p>
+      <main className="candidate-dashboard-page">
+        <section className="candidate-dashboard-loading">
+          <div className="candidate-loading-mark">H</div>
+          <p>Loading Candidate Dashboard</p>
         </section>
       </main>
     );
   }
 
+  if (!candidate) {
+    return null;
+  }
+
   return (
-    <main className="student-dashboard-page">
-      <header className="student-dashboard-header">
-        <div>
-          <p className="dashboard-kicker">HELIX ACADEMY</p>
+    <main className="candidate-dashboard-page">
+      <header className="candidate-dashboard-topbar">
+        <div className="candidate-dashboard-brand">
+          <div className="candidate-dashboard-mark">H</div>
 
-          <h1>Student Dashboard</h1>
-
-          <p className="dashboard-subtitle">
-            Welcome, {candidate.fullName}. Select a Mock or Test to continue.
-          </p>
+          <div>
+            <p>HELIX ACADEMY</p>
+            <span>Student Portal</span>
+          </div>
         </div>
 
         <button
-          className="dashboard-home-link dashboard-exit-button"
+          className="candidate-dashboard-exit"
           type="button"
-          onClick={handleExit}
+          onClick={exitDashboard}
         >
           Exit
         </button>
       </header>
 
-      <section className="student-dashboard-content">
-        <div className="candidate-summary-card">
+      <section className="candidate-dashboard-main">
+        <div className="candidate-dashboard-intro">
+          <p className="candidate-dashboard-eyebrow">CANDIDATE DASHBOARD</p>
+
+          <h1>Welcome, {candidate.fullName}</h1>
+
+          <p>
+            Select a published Mock or Test to continue your preparation.
+          </p>
+        </div>
+
+        <section className="candidate-identity-card">
           <div>
-            <p className="section-label section-label-light">
-              REGISTERED CANDIDATE
-            </p>
-
+            <span>REGISTERED CANDIDATE</span>
             <h2>{candidate.fullName}</h2>
-
             <p>
               Candidate ID: <strong>{candidate.candidateId}</strong>
             </p>
           </div>
 
-          <span className="candidate-status-badge">Verified</span>
-        </div>
+          <span className="candidate-verified-badge">Verified</span>
+        </section>
 
-        <div className="content-type-switcher" role="tablist">
+        <div className="candidate-type-tabs" role="tablist">
           <button
-            className={`content-type-tab ${
-              activeType === "mock" ? "content-type-tab-active" : ""
+            className={`candidate-type-tab ${
+              activeType === "mock" ? "candidate-type-tab-active" : ""
             }`}
             type="button"
             role="tab"
@@ -93,8 +108,8 @@ export default function StudentDashboardPage() {
           </button>
 
           <button
-            className={`content-type-tab ${
-              activeType === "test" ? "content-type-tab-active" : ""
+            className={`candidate-type-tab ${
+              activeType === "test" ? "candidate-type-tab-active" : ""
             }`}
             type="button"
             role="tab"
@@ -106,21 +121,19 @@ export default function StudentDashboardPage() {
         </div>
 
         {activeType === "mock" ? (
-          <section className="student-selection-section">
-            <div className="student-section-heading">
-              <p className="section-label section-label-light">
-                MOCK ACCESS
-              </p>
+          <section className="candidate-access-panel">
+            <div className="candidate-panel-heading">
+              <span className="candidate-panel-label">MOCK ACCESS</span>
 
               <h2>Enter a Mock passcode</h2>
 
               <p>
-                Use the unique passcode provided by your instructor to unlock a
-                published Mock.
+                Use the unique passcode provided by your instructor to unlock
+                a published Mock.
               </p>
             </div>
 
-            <div className="student-access-card">
+            <div className="candidate-passcode-box">
               <label htmlFor="mock-passcode">Mock passcode</label>
 
               <input
@@ -129,27 +142,23 @@ export default function StudentDashboardPage() {
                 placeholder="Enter Mock passcode"
               />
 
-              <button className="dashboard-primary-button" type="button">
-                Unlock Mock
-              </button>
+              <button type="button">Unlock Mock</button>
             </div>
           </section>
         ) : (
-          <section className="student-selection-section">
-            <div className="student-section-heading">
-              <p className="section-label section-label-light">
-                TEST ACCESS
-              </p>
+          <section className="candidate-access-panel">
+            <div className="candidate-panel-heading">
+              <span className="candidate-panel-label">TEST ACCESS</span>
 
-              <h2>Choose a published Test</h2>
+              <h2>Published Tests</h2>
 
               <p>
                 Select a published Test, then enter its unique passcode.
               </p>
             </div>
 
-            <div className="student-empty-card">
-              <div className="empty-icon">+</div>
+            <div className="candidate-empty-panel">
+              <div className="candidate-empty-mark">+</div>
 
               <h2>No published Tests available</h2>
 
