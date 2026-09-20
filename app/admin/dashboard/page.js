@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-const candidateStorageKey = "helix_registered_candidates";
+const storageKey = "helix_registered_candidates";
 
 const defaultCandidates = [
   {
@@ -17,20 +17,16 @@ function normalizeCandidateId(value) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-function normalizeHeader(value) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function loadCandidates() {
+function readCandidates() {
   if (typeof window === "undefined") {
     return defaultCandidates;
   }
 
-  const saved = window.localStorage.getItem(candidateStorageKey);
+  const saved = window.localStorage.getItem(storageKey);
 
   if (!saved) {
     window.localStorage.setItem(
-      candidateStorageKey,
+      storageKey,
       JSON.stringify(defaultCandidates),
     );
 
@@ -40,72 +36,25 @@ function loadCandidates() {
   try {
     const parsed = JSON.parse(saved);
 
-    if (Array.isArray(parsed)) {
-      return parsed;
-    }
-
-    return defaultCandidates;
+    return Array.isArray(parsed) ? parsed : defaultCandidates;
   } catch {
     return defaultCandidates;
   }
 }
 
-function saveCandidates(candidates) {
-  window.localStorage.setItem(
-    candidateStorageKey,
-    JSON.stringify(candidates),
-  );
-}
-
-function parseCsvLine(line) {
-  const output = [];
-  let current = "";
-  let quoted = false;
-
-  for (let index = 0; index < line.length; index += 1) {
-    const character = line[index];
-
-    if (character === '"') {
-      quoted = !quoted;
-      continue;
-    }
-
-    if (character === "," && !quoted) {
-      output.push(current.trim());
-      current = "";
-      continue;
-    }
-
-    current += character;
-  }
-
-  output.push(current.trim());
-
-  return output;
-}
-
-function getCsvLines(text) {
-  const normalizedText = text.replaceAll("
-", "");
-
-  return normalizedText
-    .match(/[^
-]+/g)
-    ?.map((line) => line.trim())
-    .filter((line) => line.length > 0) || [];
+function writeCandidates(candidates) {
+  window.localStorage.setItem(storageKey, JSON.stringify(candidates));
 }
 
 export default function AdminDashboardPage() {
-  const [activeType, setActiveType] = useState("mock");
+  const [activeTab, setActiveTab] = useState("mock");
 
   return (
     <main className="dashboard-page">
       <header className="dashboard-header">
         <div>
           <p className="dashboard-kicker">HELIX ACADEMY</p>
-
           <h1>Admin Dashboard</h1>
-
           <p className="dashboard-subtitle">
             Create, configure, publish, and monitor your CBT content.
           </p>
@@ -117,65 +66,57 @@ export default function AdminDashboardPage() {
       </header>
 
       <section className="dashboard-content">
-        <div className="content-type-switcher" role="tablist">
+        <nav className="content-type-switcher" aria-label="Dashboard sections">
           <button
             className={`content-type-tab ${
-              activeType === "mock" ? "content-type-tab-active" : ""
+              activeTab === "mock" ? "content-type-tab-active" : ""
             }`}
             type="button"
-            role="tab"
-            aria-selected={activeType === "mock"}
-            onClick={() => setActiveType("mock")}
+            onClick={() => setActiveTab("mock")}
           >
             Mock
           </button>
 
           <button
             className={`content-type-tab ${
-              activeType === "test" ? "content-type-tab-active" : ""
+              activeTab === "test" ? "content-type-tab-active" : ""
             }`}
             type="button"
-            role="tab"
-            aria-selected={activeType === "test"}
-            onClick={() => setActiveType("test")}
+            onClick={() => setActiveTab("test")}
           >
             Test
           </button>
 
           <button
             className={`content-type-tab ${
-              activeType === "candidates"
+              activeTab === "candidates"
                 ? "content-type-tab-active"
                 : ""
             }`}
             type="button"
-            role="tab"
-            aria-selected={activeType === "candidates"}
-            onClick={() => setActiveType("candidates")}
+            onClick={() => setActiveTab("candidates")}
           >
             Candidates
           </button>
-        </div>
+        </nav>
 
-        {activeType === "mock" && <MockDashboardView />}
+        {activeTab === "mock" && <MockSection />}
 
-        {activeType === "test" && <TestDashboardView />}
+        {activeTab === "test" && <TestSection />}
 
-        {activeType === "candidates" && <CandidateManagementView />}
+        {activeTab === "candidates" && <CandidatesSection />}
       </section>
     </main>
   );
 }
 
-function MockDashboardView() {
+function MockSection() {
   return (
     <>
       <div className="dashboard-welcome-card">
         <div>
           <p className="section-label">MOCK DASHBOARD</p>
-
           <h2>Full four-subject exam simulations</h2>
-
           <p>
             Create a Mock where Candidates select exactly four synced subjects.
           </p>
@@ -209,47 +150,24 @@ function MockDashboardView() {
         </article>
       </div>
 
-      <section className="dashboard-list-section">
-        <div className="dashboard-list-heading">
-          <div>
-            <p className="section-label section-label-light">MOCKS</p>
-            <h2>Your Mock examinations</h2>
-          </div>
-
-          <span className="dashboard-count-badge">0 items</span>
-        </div>
-
-        <div className="dashboard-empty-state">
-          <div className="empty-icon">+</div>
-
-          <h2>No Mocks created yet</h2>
-
-          <p>
-            Create a Mock to begin adding subjects, question banks, and
-            publishing settings.
-          </p>
-
-          <Link
-            href="/admin/dashboard/mock"
-            className="dashboard-secondary-link"
-          >
-            Start a Mock
-          </Link>
-        </div>
-      </section>
+      <EmptyDashboardSection
+        label="MOCKS"
+        title="Your Mock examinations"
+        message="Create a Mock to begin adding subjects, question banks, and publishing settings."
+        link="/admin/dashboard/mock"
+        linkText="Start a Mock"
+      />
     </>
   );
 }
 
-function TestDashboardView() {
+function TestSection() {
   return (
     <>
       <div className="dashboard-welcome-card">
         <div>
           <p className="section-label">TEST DASHBOARD</p>
-
           <h2>Flexible single or multi-subject practice</h2>
-
           <p>
             Create a Test with one or more subjects in Study Mode or CBT Mode.
           </p>
@@ -283,75 +201,75 @@ function TestDashboardView() {
         </article>
       </div>
 
-      <section className="dashboard-list-section">
-        <div className="dashboard-list-heading">
-          <div>
-            <p className="section-label section-label-light">TESTS</p>
-            <h2>Your practice Tests</h2>
-          </div>
-
-          <span className="dashboard-count-badge">0 items</span>
-        </div>
-
-        <div className="dashboard-empty-state">
-          <div className="empty-icon">+</div>
-
-          <h2>No Tests created yet</h2>
-
-          <p>
-            Create a Test to configure subjects, mode, timing, and tab-switch
-            protection.
-          </p>
-
-          <Link
-            href="/admin/dashboard/test"
-            className="dashboard-secondary-link"
-          >
-            Start a Test
-          </Link>
-        </div>
-      </section>
+      <EmptyDashboardSection
+        label="TESTS"
+        title="Your practice Tests"
+        message="Create a Test to configure subjects, mode, timing, and tab-switch protection."
+        link="/admin/dashboard/test"
+        linkText="Start a Test"
+      />
     </>
   );
 }
 
-function CandidateManagementView() {
-  const [candidates, setCandidates] = useState(() => loadCandidates());
-  const [searchTerm, setSearchTerm] = useState("");
-  const [showAddForm, setShowAddForm] = useState(false);
+function EmptyDashboardSection({
+  label,
+  title,
+  message,
+  link,
+  linkText,
+}) {
+  return (
+    <section className="dashboard-list-section">
+      <div className="dashboard-list-heading">
+        <div>
+          <p className="section-label section-label-light">{label}</p>
+          <h2>{title}</h2>
+        </div>
+
+        <span className="dashboard-count-badge">0 items</span>
+      </div>
+
+      <div className="dashboard-empty-state">
+        <div className="empty-icon">+</div>
+        <h2>No {label} created yet</h2>
+        <p>{message}</p>
+
+        <Link href={link} className="dashboard-secondary-link">
+          {linkText}
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function CandidatesSection() {
+  const [candidates, setCandidates] = useState(() => readCandidates());
+  const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState("");
   const [fullName, setFullName] = useState("");
   const [candidateId, setCandidateId] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [uploadMessage, setUploadMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const filteredCandidates = useMemo(() => {
-    const search = searchTerm.trim().toLowerCase();
+  const visibleCandidates = useMemo(() => {
+    const searchValue = search.trim().toLowerCase();
 
-    if (!search) {
+    if (!searchValue) {
       return candidates;
     }
 
     return candidates.filter(
       (candidate) =>
-        candidate.fullName.toLowerCase().includes(search) ||
-        candidate.candidateId.toLowerCase().includes(search),
+        candidate.fullName.toLowerCase().includes(searchValue) ||
+        candidate.candidateId.toLowerCase().includes(searchValue),
     );
-  }, [candidates, searchTerm]);
-
-  function updateCandidates(updatedCandidates) {
-    setCandidates(updatedCandidates);
-    saveCandidates(updatedCandidates);
-  }
-
-  function resetForm() {
-    setFullName("");
-    setCandidateId("");
-    setErrorMessage("");
-  }
+  }, [candidates, search]);
 
   function closeForm() {
-    setShowAddForm(false);
-    resetForm();
+    setShowForm(false);
+    setFullName("");
+    setCandidateId("");
+    setError("");
   }
 
   function addCandidate(event) {
@@ -361,139 +279,39 @@ function CandidateManagementView() {
     const normalizedId = normalizeCandidateId(candidateId);
 
     if (!cleanedName) {
-      setErrorMessage("Please enter the Candidate Full Name.");
+      setError("Please enter the Candidate Full Name.");
       return;
     }
 
     if (!normalizedId) {
-      setErrorMessage("Please enter the Candidate ID.");
+      setError("Please enter the Candidate ID.");
       return;
     }
 
-    const duplicate = candidates.some(
-      (candidate) => candidate.candidateId === normalizedId,
-    );
-
-    if (duplicate) {
-      setErrorMessage(
-        "This Candidate ID already exists in the registered roster.",
-      );
+    if (candidates.some((candidate) => candidate.candidateId === normalizedId)) {
+      setError("This Candidate ID already exists in the registered roster.");
       return;
     }
 
-    updateCandidates([
+    const updated = [
       ...candidates,
       {
         id: `candidate-${Date.now()}`,
         fullName: cleanedName,
         candidateId: normalizedId,
       },
-    ]);
+    ];
 
-    setUploadMessage("");
+    setCandidates(updated);
+    writeCandidates(updated);
     closeForm();
   }
 
   function removeCandidate(id) {
-    updateCandidates(candidates.filter((candidate) => candidate.id !== id));
-  }
+    const updated = candidates.filter((candidate) => candidate.id !== id);
 
-  function handleCsvUpload(event) {
-    const file = event.target.files?.[0];
-
-    setErrorMessage("");
-    setUploadMessage("");
-
-    if (!file) {
-      return;
-    }
-
-    if (!/.csv$/i.test(file.name)) {
-      event.target.value = "";
-      setErrorMessage("Please upload a CSV file.");
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const text = String(reader.result || "");
-      const lines = getCsvLines(text);
-
-      if (lines.length < 2) {
-        setErrorMessage("The CSV must include a header and at least one row.");
-        return;
-      }
-
-      const headers = parseCsvLine(lines[0]).map(normalizeHeader);
-      const nameIndex = headers.indexOf("fullname");
-      const idIndex = headers.indexOf("candidateid");
-
-      if (nameIndex === -1 || idIndex === -1) {
-        setErrorMessage(
-          "The CSV headers must be Full Name and Candidate ID.",
-        );
-        return;
-      }
-
-      const existingIds = new Set(
-        candidates.map((candidate) => candidate.candidateId),
-      );
-
-      const imported = [];
-      let duplicateCount = 0;
-      let invalidCount = 0;
-
-      for (let index = 1; index < lines.length; index += 1) {
-        const values = parseCsvLine(lines[index]);
-        const importedName = values[nameIndex]
-          ?.trim()
-          .replace(/s+/g, " ");
-        const importedId = normalizeCandidateId(values[idIndex] || "");
-
-        if (!importedName || !importedId) {
-          invalidCount += 1;
-          continue;
-        }
-
-        const duplicate =
-          existingIds.has(importedId) ||
-          imported.some((candidate) => candidate.candidateId === importedId);
-
-        if (duplicate) {
-          duplicateCount += 1;
-          continue;
-        }
-
-        imported.push({
-          id: `candidate-${Date.now()}-${index}`,
-          fullName: importedName,
-          candidateId: importedId,
-        });
-      }
-
-      if (imported.length === 0) {
-        setErrorMessage(
-          "No new Candidates were imported. Check the file or existing Candidate IDs.",
-        );
-        return;
-      }
-
-      updateCandidates([...candidates, ...imported]);
-
-      setUploadMessage(
-        `${imported.length} Candidate(s) imported. ${duplicateCount} duplicate row(s) skipped. ${invalidCount} invalid row(s) skipped.`,
-      );
-
-      event.target.value = "";
-    };
-
-    reader.onerror = () => {
-      event.target.value = "";
-      setErrorMessage("The CSV file could not be read.");
-    };
-
-    reader.readAsText(file);
+    setCandidates(updated);
+    writeCandidates(updated);
   }
 
   return (
@@ -507,8 +325,7 @@ function CandidateManagementView() {
           <h2>Registered Candidates</h2>
 
           <p>
-            Add and manage Candidates who are allowed to access published
-            Mocks and Tests.
+            Manage the Candidates who may access published Mocks and Tests.
           </p>
         </div>
 
@@ -516,39 +333,13 @@ function CandidateManagementView() {
           className="dashboard-primary-button"
           type="button"
           onClick={() => {
-            resetForm();
-            setShowAddForm(true);
+            setError("");
+            setShowForm(true);
           }}
         >
           + Add Candidate
         </button>
       </div>
-
-      <div className="candidate-upload-card">
-        <div>
-          <p className="candidate-upload-title">Bulk upload</p>
-
-          <p className="candidate-upload-description">
-            Upload a CSV with the columns Full Name and Candidate ID.
-          </p>
-        </div>
-
-        <label className="candidate-upload-button">
-          Choose CSV file
-
-          <input
-            type="file"
-            accept=".csv"
-            onChange={handleCsvUpload}
-          />
-        </label>
-      </div>
-
-      {uploadMessage && (
-        <p className="candidate-upload-success" role="status">
-          {uploadMessage}
-        </p>
-      )}
 
       <div className="candidate-management-tools">
         <label htmlFor="candidate-search">Search roster</label>
@@ -556,8 +347,8 @@ function CandidateManagementView() {
         <input
           id="candidate-search"
           type="search"
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
           placeholder="Search by Full Name or Candidate ID"
         />
 
@@ -565,16 +356,11 @@ function CandidateManagementView() {
       </div>
 
       <div className="candidate-roster-card">
-        {filteredCandidates.length === 0 ? (
+        {visibleCandidates.length === 0 ? (
           <div className="candidate-roster-empty">
             <div className="empty-icon">+</div>
-
             <h3>No matching Candidates</h3>
-
-            <p>
-              Add a Candidate or adjust your search to view registered
-              records.
-            </p>
+            <p>Try another search or add a new Candidate.</p>
           </div>
         ) : (
           <div className="candidate-table-wrapper">
@@ -589,7 +375,7 @@ function CandidateManagementView() {
               </thead>
 
               <tbody>
-                {filteredCandidates.map((candidate) => (
+                {visibleCandidates.map((candidate) => (
                   <tr key={candidate.id}>
                     <td>{candidate.fullName}</td>
 
@@ -625,7 +411,7 @@ function CandidateManagementView() {
         )}
       </div>
 
-      {showAddForm && (
+      {showForm && (
         <div className="dashboard-modal-overlay">
           <section className="create-mock-modal candidate-modal">
             <button
@@ -648,47 +434,46 @@ function CandidateManagementView() {
             </p>
 
             <form onSubmit={addCandidate}>
-              <label className="create-mock-label" htmlFor="candidate-full-name">
+              <label className="create-mock-label" htmlFor="candidate-name">
                 Full Name
               </label>
 
               <input
-                id="candidate-full-name"
+                id="candidate-name"
                 className="create-mock-input"
                 type="text"
                 value={fullName}
                 onChange={(event) => {
                   setFullName(event.target.value);
-                  setErrorMessage("");
+                  setError("");
                 }}
                 placeholder="Enter Candidate Full Name"
                 autoFocus
               />
 
-              <label className="create-mock-label" htmlFor="candidate-id">
+              <label className="create-mock-label" htmlFor="candidate-code">
                 Candidate ID
               </label>
 
               <input
-                id="candidate-id"
+                id="candidate-code"
                 className="create-mock-input"
                 type="text"
                 value={candidateId}
                 onChange={(event) => {
                   setCandidateId(event.target.value);
-                  setErrorMessage("");
+                  setError("");
                 }}
                 placeholder="Example: HOT-2027-001"
               />
 
               <p className="candidate-format-help">
-                Spacing, casing, and punctuation will be normalized
-                automatically.
+                Spacing, casing, and punctuation are normalized automatically.
               </p>
 
-              {errorMessage && (
+              {error && (
                 <p className="create-mock-error" role="alert">
-                  {errorMessage}
+                  {error}
                 </p>
               )}
 
@@ -711,4 +496,4 @@ function CandidateManagementView() {
       )}
     </section>
   );
-}
+    }
