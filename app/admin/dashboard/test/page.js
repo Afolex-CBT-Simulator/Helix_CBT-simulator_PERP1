@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-const availableSubjects = [
+const subjects = [
   "Mathematics",
   "English",
   "Physics",
@@ -18,51 +18,44 @@ const availableSubjects = [
   "IRS",
 ];
 
-const acceptedFileTypes = ".pdf,.docx,.txt";
-const maximumFileSize = 10 * 1024 * 1024;
-
 export default function TestSetupPage() {
   const [testName, setTestName] = useState("");
   const [testMode, setTestMode] = useState("cbt");
-  const [maxTabSwitches, setMaxTabSwitches] = useState("3");
-  const [returnCountdown, setReturnCountdown] = useState("10");
+  const [maxSwitches, setMaxSwitches] = useState("3");
+  const [countdown, setCountdown] = useState("10");
 
-  const [selectedSubjects, setSelectedSubjects] = useState([]);
-  const [showSubjectForm, setShowSubjectForm] = useState(false);
-
-  const [selectedSubject, setSelectedSubject] = useState("");
+  const [subject, setSubject] = useState("");
   const [subjectMode, setSubjectMode] = useState("");
-  const [timeAllocated, setTimeAllocated] = useState("");
+  const [subjectTime, setSubjectTime] = useState("");
+  const [fileName, setFileName] = useState("");
   const [questionCount, setQuestionCount] = useState("");
   const [difficulty, setDifficulty] = useState("");
-  const [fileName, setFileName] = useState("");
 
-  const [errorMessage, setErrorMessage] = useState("");
-  const [savedMessage, setSavedMessage] = useState("");
+  const [savedSubjects, setSavedSubjects] = useState([]);
+  const [showSubjectForm, setShowSubjectForm] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const availableSubjectOptions = availableSubjects.filter(
-    (subject) =>
-      !selectedSubjects.some((selected) => selected.name === subject),
+  const unusedSubjects = subjects.filter(
+    (item) => !savedSubjects.some((saved) => saved.name === item),
   );
 
-  function openSubjectForm() {
-    setShowSubjectForm(true);
-    setSelectedSubject("");
+  function resetSubjectForm() {
+    setSubject("");
     setSubjectMode("");
-    setTimeAllocated("");
+    setSubjectTime("");
+    setFileName("");
     setQuestionCount("");
     setDifficulty("");
-    setFileName("");
-    setErrorMessage("");
-    setSavedMessage("");
+    setError("");
   }
 
   function closeSubjectForm() {
     setShowSubjectForm(false);
-    setErrorMessage("");
+    resetSubjectForm();
   }
 
-  function handleFileChange(event) {
+  function chooseFile(event) {
     const file = event.target.files?.[0];
 
     if (!file) {
@@ -70,129 +63,107 @@ export default function TestSetupPage() {
       return;
     }
 
-    const validExtension = /.(pdf|docx|txt)$/i.test(file.name);
+    const validType = /.(pdf|docx|txt)$/i.test(file.name);
 
-    if (!validExtension) {
-      setFileName("");
-      setErrorMessage("Only PDF, DOCX, and TXT files are accepted.");
+    if (!validType) {
       event.target.value = "";
+      setFileName("");
+      setError("Only PDF, DOCX, and TXT files are accepted.");
       return;
     }
 
-    if (file.size > maximumFileSize) {
-      setFileName("");
-      setErrorMessage("The file must be 10 MB or smaller.");
+    if (file.size > 10 * 1024 * 1024) {
       event.target.value = "";
+      setFileName("");
+      setError("The file must be 10 MB or smaller.");
       return;
     }
 
     setFileName(file.name);
-    setErrorMessage("");
+    setError("");
   }
 
   function saveSubject(event) {
     event.preventDefault();
 
-    if (!selectedSubject) {
-      setErrorMessage("Please select a subject.");
+    if (!subject) {
+      setError("Please select a subject.");
       return;
     }
 
     if (!subjectMode) {
-      setErrorMessage("Please select how questions will be provided.");
+      setError("Please select Imported or Generate from Notes.");
       return;
     }
 
     if (!fileName) {
-      setErrorMessage("Please upload a PDF, DOCX, or TXT file.");
+      setError("Please select a PDF, DOCX, or TXT file.");
       return;
     }
 
-    if (!timeAllocated || Number(timeAllocated) <= 0) {
-      setErrorMessage("Please enter a valid time allocation.");
+    if (!subjectTime || Number(subjectTime) < 1) {
+      setError("Please enter a valid time allocation.");
       return;
     }
 
-    if (subjectMode === "generated") {
-      if (!questionCount || Number(questionCount) <= 0) {
-        setErrorMessage("Please enter the number of questions to generate.");
-        return;
-      }
-
-      if (!difficulty) {
-        setErrorMessage("Please select a difficulty.");
-        return;
-      }
-    }
-
-    const duplicateSubject = selectedSubjects.some(
-      (subject) => subject.name === selectedSubject,
-    );
-
-    if (duplicateSubject) {
-      setErrorMessage("This subject has already been added.");
+    if (subjectMode === "generated" && Number(questionCount) < 1) {
+      setError("Please enter the number of questions to generate.");
       return;
     }
 
-    setSelectedSubjects([
-      ...selectedSubjects,
+    if (subjectMode === "generated" && !difficulty) {
+      setError("Please select a difficulty.");
+      return;
+    }
+
+    setSavedSubjects([
+      ...savedSubjects,
       {
-        name: selectedSubject,
+        name: subject,
         mode: subjectMode,
-        time: timeAllocated,
+        time: subjectTime,
+        fileName,
         questionCount:
           subjectMode === "generated" ? questionCount : "From file",
         difficulty:
           subjectMode === "generated" ? difficulty : "Manual tag optional",
-        fileName,
-        status: "Draft",
       },
     ]);
 
-    setShowSubjectForm(false);
-    setSelectedSubject("");
-    setSubjectMode("");
-    setTimeAllocated("");
-    setQuestionCount("");
-    setDifficulty("");
-    setFileName("");
-    setErrorMessage("");
+    closeSubjectForm();
   }
 
-  function removeSubject(subjectName) {
-    setSelectedSubjects(
-      selectedSubjects.filter((subject) => subject.name !== subjectName),
+  function removeSubject(name) {
+    setSavedSubjects(
+      savedSubjects.filter((savedSubject) => savedSubject.name !== name),
     );
   }
 
-  function handleSaveTest(event) {
+  function saveTest(event) {
     event.preventDefault();
-    setSavedMessage("");
 
     if (!testName.trim()) {
-      setErrorMessage("Please enter a name for the Test.");
+      setError("Please enter a Test name.");
       return;
     }
 
-    if (selectedSubjects.length === 0) {
-      setErrorMessage("Add at least one subject before continuing.");
+    if (savedSubjects.length === 0) {
+      setError("Please add at least one subject.");
       return;
     }
 
-    if (maxTabSwitches === "" || Number(maxTabSwitches) < 0) {
-      setErrorMessage("Enter a valid maximum tab-switch value.");
+    if (Number(maxSwitches) < 0) {
+      setError("Maximum tab switches cannot be negative.");
       return;
     }
 
-    if (returnCountdown === "" || Number(returnCountdown) < 1) {
-      setErrorMessage("Enter a return countdown of at least one second.");
+    if (Number(countdown) < 1) {
+      setError("Return countdown must be at least one second.");
       return;
     }
 
-    setErrorMessage("");
-    setSavedMessage(
-      "Test settings saved locally for review. Publishing will be added next.",
-    );
+    setError("");
+    setSuccess("Test settings saved locally for review.");
   }
 
   return (
@@ -216,7 +187,7 @@ export default function TestSetupPage() {
       </header>
 
       <section className="setup-content">
-        <form onSubmit={handleSaveTest}>
+        <form onSubmit={saveTest}>
           <section className="test-settings-card">
             <p className="section-label section-label-light">STEP 1</p>
 
@@ -233,8 +204,8 @@ export default function TestSetupPage() {
               value={testName}
               onChange={(event) => {
                 setTestName(event.target.value);
-                setErrorMessage("");
-                setSavedMessage("");
+                setError("");
+                setSuccess("");
               }}
               placeholder="Example: Physics Practice Set 1"
             />
@@ -243,7 +214,7 @@ export default function TestSetupPage() {
               <p className="section-label section-label-light">TEST MODE</p>
 
               <p>
-                This setting controls when corrections appear to the student.
+                Choose when the correct answer and explanation are displayed.
               </p>
             </div>
 
@@ -263,9 +234,7 @@ export default function TestSetupPage() {
 
                 <span>
                   <strong>Study Mode</strong>
-                  <small>
-                    Show the correct answer and explanation immediately.
-                  </small>
+                  <small>Show correction immediately after each answer.</small>
                 </span>
               </label>
 
@@ -284,9 +253,7 @@ export default function TestSetupPage() {
 
                 <span>
                   <strong>CBT Mode</strong>
-                  <small>
-                    Show corrections only after submission or time expiry.
-                  </small>
+                  <small>Show correction after submission or time expiry.</small>
                 </span>
               </label>
             </div>
@@ -297,52 +264,45 @@ export default function TestSetupPage() {
               </p>
 
               <p>
-                These settings will be copied to the Attempt when the Test
-                starts.
+                These settings will be copied to each Attempt at its start.
               </p>
             </div>
 
             <div className="tab-policy-grid">
               <div>
-                <label
-                  className="create-mock-label"
-                  htmlFor="max-tab-switches"
-                >
+                <label className="create-mock-label" htmlFor="max-switches">
                   Max Tab Switches Allowed
                 </label>
 
                 <input
-                  id="max-tab-switches"
+                  id="max-switches"
                   className="create-mock-input"
                   type="number"
                   min="0"
-                  value={maxTabSwitches}
+                  value={maxSwitches}
                   onChange={(event) => {
-                    setMaxTabSwitches(event.target.value);
-                    setErrorMessage("");
-                    setSavedMessage("");
+                    setMaxSwitches(event.target.value);
+                    setError("");
+                    setSuccess("");
                   }}
                 />
               </div>
 
               <div>
-                <label
-                  className="create-mock-label"
-                  htmlFor="return-countdown"
-                >
+                <label className="create-mock-label" htmlFor="countdown">
                   Return Countdown in Seconds
                 </label>
 
                 <input
-                  id="return-countdown"
+                  id="countdown"
                   className="create-mock-input"
                   type="number"
                   min="1"
-                  value={returnCountdown}
+                  value={countdown}
                   onChange={(event) => {
-                    setReturnCountdown(event.target.value);
-                    setErrorMessage("");
-                    setSavedMessage("");
+                    setCountdown(event.target.value);
+                    setError("");
+                    setSuccess("");
                   }}
                 />
               </div>
@@ -360,76 +320,84 @@ export default function TestSetupPage() {
               <button
                 className="dashboard-primary-button setup-add-button"
                 type="button"
-                onClick={openSubjectForm}
-                disabled={availableSubjectOptions.length === 0}
+                onClick={() => {
+                  resetSubjectForm();
+                  setShowSubjectForm(true);
+                }}
+                disabled={unusedSubjects.length === 0}
               >
                 + Add Subject
               </button>
             </div>
 
-            {selectedSubjects.length === 0 ? (
+            {savedSubjects.length === 0 ? (
               <div className="setup-empty-card">
                 <div className="empty-icon">+</div>
 
                 <h2>No subjects added</h2>
 
                 <p>
-                  A Test must contain at least one subject before it can be
-                  published.
+                  Add at least one subject before saving this Test.
                 </p>
 
                 <button
                   className="dashboard-secondary-button"
                   type="button"
-                  onClick={openSubjectForm}
+                  onClick={() => {
+                    resetSubjectForm();
+                    setShowSubjectForm(true);
+                  }}
                 >
                   Add First Subject
                 </button>
               </div>
             ) : (
               <div className="subject-config-list">
-                {selectedSubjects.map((subject) => (
-                  <article className="subject-config-card" key={subject.name}>
+                {savedSubjects.map((savedSubject) => (
+                  <article
+                    className="subject-config-card"
+                    key={savedSubject.name}
+                  >
                     <div className="subject-card-heading">
                       <div>
-                        <h3>{subject.name}</h3>
+                        <h3>{savedSubject.name}</h3>
 
                         <p>
-                          {subject.mode === "imported"
+                          {savedSubject.mode === "imported"
                             ? "Imported question file"
                             : "Generated from notes"}
                         </p>
                       </div>
 
-                      <span className="subject-status-badge">
-                        {subject.status}
-                      </span>
+                      <span className="subject-status-badge">Draft</span>
                     </div>
 
                     <div className="subject-details">
                       <span>
                         Mode:{" "}
                         <strong>
-                          {subject.mode === "imported"
+                          {savedSubject.mode === "imported"
                             ? "Imported"
                             : "AI Generated"}
                         </strong>
                       </span>
 
                       <span>
-                        Questions: <strong>{subject.questionCount}</strong>
+                        Questions:{" "}
+                        <strong>{savedSubject.questionCount}</strong>
                       </span>
 
                       <span>
-                        Difficulty: <strong>{subject.difficulty}</strong>
+                        Difficulty:{" "}
+                        <strong>{savedSubject.difficulty}</strong>
                       </span>
 
                       <span>
-                        Time: <strong>{subject.time} minutes</strong>
+                        Time: <strong>{savedSubject.time} minutes</strong>
                       </span>
 
                       <span>
-                        File: <strong>{subject.fileName}</strong>
+                        File: <strong>{savedSubject.fileName}</strong>
                       </span>
                     </div>
 
@@ -437,7 +405,7 @@ export default function TestSetupPage() {
                       <button
                         className="subject-remove-button"
                         type="button"
-                        onClick={() => removeSubject(subject.name)}
+                        onClick={() => removeSubject(savedSubject.name)}
                       >
                         Remove
                       </button>
@@ -455,15 +423,15 @@ export default function TestSetupPage() {
             )}
           </section>
 
-          {errorMessage && (
+          {error && (
             <p className="create-mock-error test-page-error" role="alert">
-              {errorMessage}
+              {error}
             </p>
           )}
 
-          {savedMessage && (
+          {success && (
             <p className="login-success test-page-success" role="status">
-              {savedMessage}
+              {success}
             </p>
           )}
 
@@ -496,24 +464,24 @@ export default function TestSetupPage() {
             </p>
 
             <form onSubmit={saveSubject}>
-              <label className="create-mock-label" htmlFor="test-subject">
+              <label className="create-mock-label" htmlFor="subject">
                 Subject
               </label>
 
               <select
-                id="test-subject"
+                id="subject"
                 className="create-mock-input"
-                value={selectedSubject}
+                value={subject}
                 onChange={(event) => {
-                  setSelectedSubject(event.target.value);
-                  setErrorMessage("");
+                  setSubject(event.target.value);
+                  setError("");
                 }}
               >
                 <option value="">Select a subject</option>
 
-                {availableSubjectOptions.map((subject) => (
-                  <option value={subject} key={subject}>
-                    {subject}
+                {unusedSubjects.map((item) => (
+                  <option value={item} key={item}>
+                    {item}
                   </option>
                 ))}
               </select>
@@ -533,7 +501,7 @@ export default function TestSetupPage() {
                       setSubjectMode(event.target.value);
                       setQuestionCount("");
                       setDifficulty("");
-                      setErrorMessage("");
+                      setError("");
                     }}
                   />
 
@@ -541,8 +509,7 @@ export default function TestSetupPage() {
                     <strong>Import Ready-Made</strong>
 
                     <small>
-                      Upload complete questions, options, answers, and
-                      explanations.
+                      Upload complete questions, answers, and explanations.
                     </small>
                   </span>
                 </label>
@@ -555,7 +522,7 @@ export default function TestSetupPage() {
                     checked={subjectMode === "generated"}
                     onChange={(event) => {
                       setSubjectMode(event.target.value);
-                      setErrorMessage("");
+                      setError("");
                     }}
                   />
 
@@ -569,16 +536,16 @@ export default function TestSetupPage() {
                 </label>
               </fieldset>
 
-              <label className="create-mock-label" htmlFor="test-file">
+              <label className="create-mock-label" htmlFor="subject-file">
                 Upload file
               </label>
 
               <input
-                id="test-file"
+                id="subject-file"
                 className="create-mock-input file-input"
                 type="file"
-                accept={acceptedFileTypes}
-                onChange={handleFileChange}
+                accept=".pdf,.docx,.txt"
+                onChange={chooseFile}
               />
 
               <p className="file-help-text">
@@ -595,38 +562,38 @@ export default function TestSetupPage() {
                 <div className="generated-settings">
                   <label
                     className="create-mock-label"
-                    htmlFor="test-question-count"
+                    htmlFor="question-count"
                   >
                     Number of questions
                   </label>
 
                   <input
-                    id="test-question-count"
+                    id="question-count"
                     className="create-mock-input"
                     type="number"
                     min="1"
                     value={questionCount}
                     onChange={(event) => {
                       setQuestionCount(event.target.value);
-                      setErrorMessage("");
+                      setError("");
                     }}
                     placeholder="Example: 30"
                   />
 
                   <label
                     className="create-mock-label"
-                    htmlFor="test-difficulty"
+                    htmlFor="difficulty"
                   >
                     Difficulty
                   </label>
 
                   <select
-                    id="test-difficulty"
+                    id="difficulty"
                     className="create-mock-input"
                     value={difficulty}
                     onChange={(event) => {
                       setDifficulty(event.target.value);
-                      setErrorMessage("");
+                      setError("");
                     }}
                   >
                     <option value="">Select difficulty</option>
@@ -638,27 +605,46 @@ export default function TestSetupPage() {
                 </div>
               )}
 
-              <label className="create-mock-label" htmlFor="test-time">
+              <label className="create-mock-label" htmlFor="subject-time">
                 Time allocation in minutes
               </label>
 
               <input
-                id="test-time"
+                id="subject-time"
                 className="create-mock-input"
                 type="number"
                 min="1"
-                value={timeAllocated}
+                value={subjectTime}
                 onChange={(event) => {
-                  setTimeAllocated(event.target.value);
-                  setErrorMessage("");
+                  setSubjectTime(event.target.value);
+                  setError("");
                 }}
                 placeholder="Example: 30"
               />
 
-              {errorMessage && (
+              {error && (
                 <p className="create-mock-error" role="alert">
-                  {errorMessage}
+                  {error}
                 </p>
               )}
 
-              <div className="create-moda
+              <div className="create-modal-actions">
+                <button
+                  className="create-cancel-button"
+                  type="button"
+                  onClick={closeSubjectForm}
+                >
+                  Cancel
+                </button>
+
+                <button className="create-submit-button" type="submit">
+                  Save Subject
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+    </main>
+  );
+      }
