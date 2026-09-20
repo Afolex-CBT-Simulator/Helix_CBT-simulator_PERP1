@@ -1664,3 +1664,52 @@ h1 span {
   margin: 20px auto 0;
   text-align: left;
 }
+.setup-counter {
+  margin-top: 7px;
+  color: var(--muted-blue);
+  font-size: 0.78rem;
+}
+
+.subject-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 50px;
+  background: #edf4f9;
+  color: var(--mid-blue);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.sync-toggle {
+  padding: 9px 13px;
+  border: 1px solid rgba(31, 95, 153, 0.3);
+  border-radius: 6px;
+  background: var(--soft-blue);
+  color: var(--deep-blue);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.sync-toggle:hover {
+  background: #c7dcec;
+}
+
+.sync-toggle-on {
+  border-color: var(--success-green);
+  background: #e4f3ec;
+  color: var(--success-green);
+}
+
+.setup-next-step-card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
