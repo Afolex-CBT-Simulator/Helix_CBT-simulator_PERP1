@@ -117,6 +117,105 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
+              <Link
+                href="/admin/dashboard/mock"
+                className="mock-edit-button"
+              >
+                Continue setup
+              </Link>
+            </article>
+          </section>
+        ) : (
+          <section className="empty-dashboard-card">
+            <div className="empty-icon">+</div>
+            <h2>No mock examinations yet</h2>
+            <p>
+              Create your first mock to begin adding subjects and questions.
+            </p>
+            <button
+              className="dashboard-secondary-button"
+              type="button"
+              onClick={openCreateForm}
+            >
+              Create Your First Mock
+            </button>
+          </section>
+        )}
+      </section>
+
+      {showCreateForm && (
+        <div className="dashboard-modal-overlay">
+          <section className="create-mock-modal">
+            <button
+              className="create-modal-close"
+              type="button"
+              onClick={closeCreateForm}
+              aria-label="Close create mock form"
+            >
+              ×
+            </button>
+
+            <p className="section-label section-label-dark">STEP 1</p>
+
+            <h2>Create a new mock</h2>
+
+            <p className="create-modal-description">
+              Give this mock a clear name. You can add subjects and questions
+              after creating it.
+            </p>
+
+            <form onSubmit={handleCreateMock}>
+              <label className="create-mock-label" htmlFor="mock-name">
+                Mock name
+              </label>
+
+              <input
+                id="mock-name"
+                className="create-mock-input"
+                type="text"
+                value={mockName}
+                onChange={(event) => {
+                  setMockName(event.target.value);
+                  setErrorMessage("");
+                }}
+                placeholder="Example: Mock 1.0"
+                autoFocus
+              />
+
+              {errorMessage && (
+                <p className="create-mock-error" role="alert">
+                  {errorMessage}
+                </p>
+              )}
+
+              <div className="create-modal-actions">
+                <button
+                  className="create-cancel-button"
+                  type="button"
+                  onClick={closeCreateForm}
+                >
+                  Cancel
+                </button>
+
+                <button className="create-submit-button" type="submit">
+                  Create Mock
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+    </main>
+  );
+}              <div className="mock-list-main">
+                <div className="mock-status-dot"></div>
+
+                <div>
+                  <h3>{mockName}</h3>
+                  <p>Draft · No subjects added yet</p>
+                </div>
+              </div>
+
               <button className="mock-edit-button" type="button">
                 Continue setup
               </button>
