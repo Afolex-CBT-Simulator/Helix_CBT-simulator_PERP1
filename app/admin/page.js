@@ -1,18 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function AdminLoginPage() {
+  const router = useRouter();
+
   const [passcode, setPasscode] = useState("");
   const [showPasscode, setShowPasscode] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
 
   function handleSubmit(event) {
     event.preventDefault();
-
-    setSuccessMessage("");
 
     if (passcode.trim() === "") {
       setErrorMessage("Please enter the admin passcode.");
@@ -25,13 +25,12 @@ export default function AdminLoginPage() {
     }
 
     setErrorMessage("");
-    setSuccessMessage("Passcode accepted. Admin access confirmed.");
+    router.push("/admin/dashboard");
   }
 
   function handlePasscodeChange(event) {
     setPasscode(event.target.value);
     setErrorMessage("");
-    setSuccessMessage("");
   }
 
   return (
@@ -88,12 +87,6 @@ export default function AdminLoginPage() {
             </p>
           )}
 
-          {successMessage && (
-            <p className="login-success" role="status">
-              {successMessage}
-            </p>
-          )}
-
           <button type="submit" className="login-button">
             Continue
           </button>
@@ -105,4 +98,4 @@ export default function AdminLoginPage() {
       </section>
     </main>
   );
-}
+                  }
