@@ -3,112 +3,89 @@
 import Link from "next/link";
 import { useState } from "react";
 
-export default function Home() {
-  const [showAccessPanel, setShowAccessPanel] = useState(false);
+export default function AdminLoginPage() {
+  const [passcode, setPasscode] = useState("");
+  const [showPasscode, setShowPasscode] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  function handleSubmit(event) {
+    event.preventDefault();
+
+    if (passcode.trim() === "") {
+      setErrorMessage("Please enter the admin passcode.");
+      return;
+    }
+
+    if (passcode !== "Helix Simulator") {
+      setErrorMessage("Incorrect admin passcode. Please try again.");
+      return;
+    }
+
+    setErrorMessage("");
+    alert("Admin passcode accepted. The dashboard will be added next.");
+  }
 
   return (
-    <main className="landing-page">
-      <div className="background-grid"></div>
-      <div className="background-circle background-circle-one"></div>
-      <div className="background-circle background-circle-two"></div>
-
-      <section className="landing-content">
-        <div className="brand-mark">
-          <span className="brand-letter">H</span>
-          <span className="brand-dot"></span>
+    <main className="login-page">
+      <section className="login-card">
+        <div className="login-brand-mark">
+          <span>H</span>
         </div>
 
-        <p className="brand-kicker">HELIX ACADEMY</p>
+        <p className="login-kicker">HELIX ACADEMY</p>
 
-        <h1>
-          Helix <span>Academy</span>
-        </h1>
+        <h1>Admin Login</h1>
 
-        <p className="brand-subtitle">
-          Helix Online Tutorial <strong>[H•O•T]</strong>
+        <p className="login-description">
+          Enter the administrator passcode to manage mock examinations.
         </p>
 
-        <div className="divider"></div>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <label htmlFor="admin-passcode">Admin passcode</label>
 
-        <p className="intro-text">
-          Prepare with purpose. Practice with confidence. Build the knowledge
-          that moves you forward.
-        </p>
+          <div className="password-field">
+            <input
+              id="admin-passcode"
+              name="admin-passcode"
+              type={showPasscode ? "text" : "password"}
+              value={passcode}
+              onChange={(event) => {
+                setPasscode(event.target.value);
+                setErrorMessage("");
+              }}
+              placeholder="Enter passcode"
+              autoComplete="current-password"
+            />
 
-        <button
-          className="primary-button"
-          type="button"
-          onClick={() => setShowAccessPanel(true)}
-        >
-          Enter Simulator
-          <span className="button-arrow">→</span>
-        </button>
-
-        <p className="access-note">
-          A focused practice environment for UTME candidates
-        </p>
-      </section>
-
-      <footer className="landing-footer">
-        <span className="footer-line"></span>
-        <span>Driven By Knowledge; Built for Success</span>
-        <span className="footer-line"></span>
-      </footer>
-
-      {showAccessPanel && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowAccessPanel(false)}
-        >
-          <section
-            className="access-modal"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="access-title"
-          >
             <button
-              className="close-button"
+              className="password-toggle"
               type="button"
-              onClick={() => setShowAccessPanel(false)}
-              aria-label="Close access panel"
+              onClick={() => setShowPasscode(!showPasscode)}
+              aria-label={showPasscode ? "Hide passcode" : "Show passcode"}
+              title={showPasscode ? "Hide passcode" : "Show passcode"}
             >
-              ×
+              {showPasscode ? "◉" : "◌"}
             </button>
+          </div>
 
-            <p className="modal-label">ACCESS PORTAL</p>
-
-            <h2 id="access-title">How would you like to continue?</h2>
-
-            <p className="modal-description">
-              Select the portal that matches your role.
+          {errorMessage && (
+            <p className="login-error" role="alert">
+              {errorMessage}
             </p>
+          )}
 
-            <div className="portal-options">
-              <Link href="/admin" className="portal-card">
-                <span className="portal-icon">A</span>
+          <button type="submit" className="login-button">
+            Continue
+          </button>
+        </form>
 
-                <span className="portal-text">
-                  <strong>Admin Portal</strong>
-                  <small>Create and manage mock tests</small>
-                </span>
-
-                <span className="portal-arrow">→</span>
-              </Link>
-
-              <button className="portal-card" type="button">
-                <span className="portal-icon">S</span>
-
-                <span className="portal-text">
-                  <strong>Student Portal</strong>
-                  <small>Attempt an assigned mock test</small>
-                </span>
-
-                <span className="portal-arrow">→</span>
-              </button>
-            </div>
-          </section>
-        </div>
+        <Link href="/" className="back-link">
+          ← Back to home
+        </Link>
+      </section>
+    </main>
+  );
+            }        </div>
       )}
     </main>
   );
