@@ -5,30 +5,22 @@ import { useState } from "react";
 export default function Home() {
   const [showAccessPanel, setShowAccessPanel] = useState(false);
 
-  function openAccessPanel() {
-    setShowAccessPanel(true);
-  }
-
-  function closeAccessPanel() {
-    setShowAccessPanel(false);
-  }
-
   return (
     <main className="landing-page">
-      <div className="pattern pattern-one"></div>
-      <div className="pattern pattern-two"></div>
+      <div className="background-grid"></div>
+      <div className="background-circle background-circle-one"></div>
+      <div className="background-circle background-circle-two"></div>
 
       <section className="landing-content">
-        <div className="brand-mark" aria-label="Helix Academy logo">
-          <span className="brand-symbol">H</span>
+        <div className="brand-mark">
+          <span className="brand-letter">H</span>
           <span className="brand-dot"></span>
         </div>
 
         <p className="brand-kicker">HELIX ACADEMY</p>
 
         <h1>
-          Helix
-          <span> Academy</span>
+          Helix <span>Academy</span>
         </h1>
 
         <p className="brand-subtitle">
@@ -42,7 +34,11 @@ export default function Home() {
           that moves you forward.
         </p>
 
-        <button className="primary-button" onClick={openAccessPanel}>
+        <button
+          className="primary-button"
+          type="button"
+          onClick={() => setShowAccessPanel(true)}
+        >
           Enter Simulator
           <span className="button-arrow">→</span>
         </button>
@@ -54,22 +50,26 @@ export default function Home() {
 
       <footer className="landing-footer">
         <span className="footer-line"></span>
-        <p>Driven By Knowledge; Built for Success</p>
+        <span>Driven By Knowledge; Built for Success</span>
         <span className="footer-line"></span>
       </footer>
 
       {showAccessPanel && (
-        <div className="modal-overlay" onClick={closeAccessPanel}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowAccessPanel(false)}
+        >
           <section
             className="access-modal"
             onClick={(event) => event.stopPropagation()}
-            aria-modal="true"
             role="dialog"
+            aria-modal="true"
             aria-labelledby="access-title"
           >
             <button
               className="close-button"
-              onClick={closeAccessPanel}
+              type="button"
+              onClick={() => setShowAccessPanel(false)}
               aria-label="Close access panel"
             >
               ×
