@@ -4,37 +4,64 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+const temporaryCandidates = [
+  {
+    fullName: "Sample Candidate",
+    candidateId: "HOT2027001",
+  },
+];
+
+function normalizeCandidateId(value) {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
 export default function StudentEntryPage() {
   const router = useRouter();
 
-  const [studentName, setStudentName] = useState("");
-  const [examNumber, setExamNumber] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [candidateId, setCandidateId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   function handleSubmit(event) {
     event.preventDefault();
 
-    const cleanedName = studentName.trim();
-    const cleanedExamNumber = examNumber.trim();
+    const cleanedName = fullName.trim();
+    const normalizedCandidateId = normalizeCandidateId(candidateId);
 
     if (!cleanedName) {
       setErrorMessage("Please enter your full name.");
       return;
     }
 
-    if (!cleanedExamNumber) {
-      setErrorMessage("Please enter your exam number.");
+    if (!normalizedCandidateId) {
+      setErrorMessage("Please enter your Candidate ID.");
       return;
     }
 
-    window.sessionStorage.setItem(
-      "helix_student_details",
-      JSON.stringify({
-        name: cleanedName,
-        examNumber: cleanedExamNumber,
-      }),
+    const matchedCandidate = temporaryCandidates.find(
+      (candidate) =>
+        normalizeCandidateId(candidate.candidateId) === normalizedCandidateId,
     );
 
+    if (!matchedCandidate) {
+      setErrorMessage(
+        "We couldn't find this Candidate ID on our records. Please contact your instructor to be registered.",
+      );
+      return;
+    }
+
+    const candidateDetails = {
+      id: normalizedCandidateId,
+      fullName: matchedCandidate.fullName,
+      candidateId: normalizedCandidateId,
+    };
+
+    window.sessionStorage.setItem(
+      "helix_candidate_details",
+      JSON.stringify(candidateDetails),
+    );
+
+    setErrorMessage("");
     router.push("/student/dashboard");
   }
 
@@ -47,42 +74,42 @@ export default function StudentEntryPage() {
 
         <p className="login-kicker">HELIX ACADEMY</p>
 
-        <h1>Student Entry</h1>
+        <h1>Candidate Login</h1>
 
         <p className="login-description">
-          Enter your details before selecting a Mock or Test.
+          Enter your registered name and Candidate ID to continue.
         </p>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
-          <label htmlFor="student-name">Full name</label>
+          <label htmlFor="full-name">Full Name</label>
 
           <input
-            id="student-name"
-            name="student-name"
+            id="full-name"
+            name="full-name"
             type="text"
-            value={studentName}
+            value={fullName}
             onChange={(event) => {
-              setStudentName(event.target.value);
+              setFullName(event.target.value);
               setErrorMessage("");
             }}
             placeholder="Enter your full name"
             autoComplete="name"
           />
 
-          <label className="student-field-label" htmlFor="exam-number">
-            Exam number
+          <label className="student-field-label" htmlFor="candidate-id">
+            Candidate ID
           </label>
 
           <input
-            id="exam-number"
-            name="exam-number"
+            id="candidate-id"
+            name="candidate-id"
             type="text"
-            value={examNumber}
+            value={candidateId}
             onChange={(event) => {
-              setExamNumber(event.target.value);
+              setCandidateId(event.target.value);
               setErrorMessage("");
             }}
-            placeholder="Enter your exam number"
+            placeholder="Example: HOT-2027-001"
             autoComplete="off"
           />
 
@@ -103,4 +130,4 @@ export default function StudentEntryPage() {
       </section>
     </main>
   );
-                                               }
+    }
