@@ -132,4 +132,28 @@
   .access-modal h2 {
     font-size: 1.55rem;
   }
+}}
+
+.portal-card strong {
+  font-size: 0.88rem;
+}
+
+.portal-card small {
+  color: var(--muted-blue);
+  font-size: 0.74rem;
+}
+
+.portal-arrow {
+  color: var(--mid-blue);
+  font-size: 1.1rem;
+}
+
+@media (max-width: 600px) {
+  .access-modal {
+    padding: 32px 22px 24px;
+  }
+
+  .access-modal h2 {
+    font-size: 1.55rem;
+  }
 }
