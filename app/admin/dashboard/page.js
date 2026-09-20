@@ -17,14 +17,18 @@ function normalizeCandidateId(value) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+function normalizeHeader(value) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function loadCandidates() {
   if (typeof window === "undefined") {
     return defaultCandidates;
   }
 
-  const savedCandidates = window.localStorage.getItem(candidateStorageKey);
+  const storedCandidates = window.localStorage.getItem(candidateStorageKey);
 
-  if (!savedCandidates) {
+  if (!storedCandidates) {
     window.localStorage.setItem(
       candidateStorageKey,
       JSON.stringify(defaultCandidates),
@@ -34,7 +38,7 @@ function loadCandidates() {
   }
 
   try {
-    const parsedCandidates = JSON.parse(savedCandidates);
+    const parsedCandidates = JSON.parse(storedCandidates);
 
     if (!Array.isArray(parsedCandidates)) {
       return defaultCandidates;
@@ -56,6 +60,29 @@ function saveCandidates(candidates) {
     candidateStorageKey,
     JSON.stringify(candidates),
   );
+}
+
+function parseCsvLine(line) {
+  const values = [];
+  let currentValue = "";
+  let insideQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+
+    if (character === '"') {
+      insideQuotes = !insideQuotes;
+    } else if (character === "," && !insideQuotes) {
+      values.push(currentValue.trim());
+      currentValue = "";
+    } else {
+      currentValue += character;
+    }
+  }
+
+  values.push(currentValue.trim());
+
+  return values.map((value) => value.replace(/^"|"$/g, "").trim());
 }
 
 export default function AdminDashboardPage() {
@@ -281,19 +308,13 @@ function TestDashboardView() {
 }
 
 function CandidateManagementView() {
-  const [candidates, setCandidates] = useState(defaultCandidates);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [candidates, setCandidates] = useState(() => loadCandidates());
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [fullName, setFullName] = useState("");
   const [candidateId, setCandidateId] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-
-  if (!hasLoaded && typeof window !== "undefined") {
-    const storedCandidates = loadCandidates();
-    setCandidates(storedCandidates);
-    setHasLoaded(true);
-  }
+  const [uploadMessage, setUploadMessage] = useState("");
 
   const filteredCandidates = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -308,6 +329,11 @@ function CandidateManagementView() {
         candidate.candidateId.toLowerCase().includes(normalizedSearch),
     );
   }, [candidates, searchTerm]);
+
+  function updateCandidates(updatedCandidates) {
+    setCandidates(updatedCandidates);
+    saveCandidates(updatedCandidates);
+  }
 
   function resetForm() {
     setFullName("");
@@ -356,18 +382,123 @@ function CandidateManagementView() {
       },
     ];
 
-    setCandidates(updatedCandidates);
-    saveCandidates(updatedCandidates);
+    updateCandidates(updatedCandidates);
+    setUploadMessage("");
     closeForm();
   }
 
-  function removeCandidate(candidateIdToRemove) {
+  function removeCandidate(candidateToRemove) {
     const updatedCandidates = candidates.filter(
-      (candidate) => candidate.id !== candidateIdToRemove,
+      (candidate) => candidate.id !== candidateToRemove,
     );
 
-    setCandidates(updatedCandidates);
-    saveCandidates(updatedCandidates);
+    updateCandidates(updatedCandidates);
+  }
+
+  function handleCsvUpload(event) {
+    const file = event.target.files?.[0];
+
+    setUploadMessage("");
+    setErrorMessage("");
+
+    if (!file) {
+      return;
+    }
+
+    const validFile = /.(csv)$/i.test(file.name);
+
+    if (!validFile) {
+      event.target.value = "";
+      setErrorMessage("Please upload a CSV file.");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const text = String(reader.result || "");
+      const lines = text
+        .split(/
+?
+/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (lines.length < 2) {
+        setErrorMessage("The CSV must include a header and at least one row.");
+        return;
+      }
+
+      const headers = parseCsvLine(lines[0]).map(normalizeHeader);
+      const fullNameIndex = headers.indexOf("fullname");
+      const candidateIdIndex = headers.indexOf("candidateid");
+
+      if (fullNameIndex === -1 || candidateIdIndex === -1) {
+        setErrorMessage(
+          "The CSV headers must be Full Name and Candidate ID.",
+        );
+        return;
+      }
+
+      const existingIds = new Set(
+        candidates.map((candidate) => candidate.candidateId),
+      );
+
+      const importedCandidates = [];
+      let duplicateCount = 0;
+      let invalidCount = 0;
+
+      for (let index = 1; index < lines.length; index += 1) {
+        const values = parseCsvLine(lines[index]);
+        const importedName = values[fullNameIndex]
+          ?.trim()
+          .replace(/s+/g, " ");
+        const importedId = normalizeCandidateId(values[candidateIdIndex] || "");
+
+        if (!importedName || !importedId) {
+          invalidCount += 1;
+          continue;
+        }
+
+        if (
+          existingIds.has(importedId) ||
+          importedCandidates.some(
+            (candidate) => candidate.candidateId === importedId,
+          )
+        ) {
+          duplicateCount += 1;
+          continue;
+        }
+
+        importedCandidates.push({
+          id: `candidate-${Date.now()}-${index}`,
+          fullName: importedName,
+          candidateId: importedId,
+        });
+      }
+
+      if (importedCandidates.length === 0) {
+        setErrorMessage(
+          "No new Candidates were imported. Check the file or existing Candidate IDs.",
+        );
+        return;
+      }
+
+      updateCandidates([...candidates, ...importedCandidates]);
+
+      setUploadMessage(
+        `${importedCandidates.length} Candidate(s) imported. ${duplicateCount} duplicate row(s) skipped. ${invalidCount} invalid row(s) skipped.`,
+      );
+
+      event.target.value = "";
+    };
+
+    reader.onerror = () => {
+      setErrorMessage("The CSV file could not be read.");
+      event.target.value = "";
+    };
+
+    reader.readAsText(file);
   }
 
   return (
@@ -397,6 +528,31 @@ function CandidateManagementView() {
           + Add Candidate
         </button>
       </div>
+
+      <div className="candidate-upload-card">
+        <div>
+          <p className="candidate-upload-title">Bulk upload</p>
+
+          <p className="candidate-upload-description">
+            Upload a CSV with the columns Full Name and Candidate ID.
+          </p>
+        </div>
+
+        <label className="candidate-upload-button">
+          Choose CSV file
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleCsvUpload}
+          />
+        </label>
+      </div>
+
+      {uploadMessage && (
+        <p className="candidate-upload-success" role="status">
+          {uploadMessage}
+        </p>
+      )}
 
       <div className="candidate-management-tools">
         <label htmlFor="candidate-search">Search roster</label>
@@ -559,4 +715,4 @@ function CandidateManagementView() {
       )}
     </section>
   );
-            }
+}
