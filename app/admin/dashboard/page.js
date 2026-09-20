@@ -6,7 +6,7 @@ import { useState } from "react";
 export default function AdminDashboardPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [mockName, setMockName] = useState("");
-  const [mockCreated, setMockCreated] = useState(false);
+  const [createdMockName, setCreatedMockName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   function openCreateForm() {
@@ -23,13 +23,16 @@ export default function AdminDashboardPage() {
   function handleCreateMock(event) {
     event.preventDefault();
 
-    if (mockName.trim() === "") {
+    const cleanedName = mockName.trim();
+
+    if (cleanedName === "") {
       setErrorMessage("Please enter a name for the mock.");
       return;
     }
 
-    setMockCreated(true);
+    setCreatedMockName(cleanedName);
     setShowCreateForm(false);
+    setMockName("");
     setErrorMessage("");
   }
 
@@ -38,7 +41,9 @@ export default function AdminDashboardPage() {
       <header className="dashboard-header">
         <div>
           <p className="dashboard-kicker">HELIX ACADEMY</p>
+
           <h1>Admin Dashboard</h1>
+
           <p className="dashboard-subtitle">
             Create, publish, and monitor your CBT mock examinations.
           </p>
@@ -53,7 +58,9 @@ export default function AdminDashboardPage() {
         <div className="dashboard-welcome-card">
           <div>
             <p className="section-label">MOCK DASHBOARD</p>
+
             <h2>Welcome to your simulator workspace</h2>
+
             <p>
               Your published and draft mock examinations will appear here.
             </p>
@@ -71,7 +78,7 @@ export default function AdminDashboardPage() {
         <div className="dashboard-stats">
           <article className="stat-card">
             <span className="stat-label">Total Mocks</span>
-            <strong>{mockCreated ? "1" : "0"}</strong>
+            <strong>{createdMockName ? "1" : "0"}</strong>
             <span className="stat-note">Mocks created</span>
           </article>
 
@@ -88,13 +95,14 @@ export default function AdminDashboardPage() {
           </article>
         </div>
 
-        {mockCreated ? (
+        {createdMockName ? (
           <section className="mock-list-section">
             <div className="section-heading-row">
               <div>
                 <p className="section-label section-label-light">
                   YOUR MOCKS
                 </p>
+
                 <h2>Mock examinations</h2>
               </div>
 
@@ -112,7 +120,8 @@ export default function AdminDashboardPage() {
                 <div className="mock-status-dot"></div>
 
                 <div>
-                  <h3>{mockName}</h3>
+                  <h3>{createdMockName}</h3>
+
                   <p>Draft · No subjects added yet</p>
                 </div>
               </div>
@@ -128,10 +137,13 @@ export default function AdminDashboardPage() {
         ) : (
           <section className="empty-dashboard-card">
             <div className="empty-icon">+</div>
+
             <h2>No mock examinations yet</h2>
+
             <p>
               Create your first mock to begin adding subjects and questions.
             </p>
+
             <button
               className="dashboard-secondary-button"
               type="button"
@@ -207,100 +219,4 @@ export default function AdminDashboardPage() {
       )}
     </main>
   );
-}              <div className="mock-list-main">
-                <div className="mock-status-dot"></div>
-
-                <div>
-                  <h3>{mockName}</h3>
-                  <p>Draft · No subjects added yet</p>
-                </div>
-              </div>
-
-              <button className="mock-edit-button" type="button">
-                Continue setup
-              </button>
-            </article>
-          </section>
-        ) : (
-          <section className="empty-dashboard-card">
-            <div className="empty-icon">+</div>
-            <h2>No mock examinations yet</h2>
-            <p>
-              Create your first mock to begin adding subjects and questions.
-            </p>
-            <button
-              className="dashboard-secondary-button"
-              type="button"
-              onClick={openCreateForm}
-            >
-              Create Your First Mock
-            </button>
-          </section>
-        )}
-      </section>
-
-      {showCreateForm && (
-        <div className="dashboard-modal-overlay">
-          <section className="create-mock-modal">
-            <button
-              className="create-modal-close"
-              type="button"
-              onClick={closeCreateForm}
-              aria-label="Close create mock form"
-            >
-              ×
-            </button>
-
-            <p className="section-label section-label-dark">STEP 1</p>
-
-            <h2>Create a new mock</h2>
-
-            <p className="create-modal-description">
-              Give this mock a clear name. You can add subjects and questions
-              after creating it.
-            </p>
-
-            <form onSubmit={handleCreateMock}>
-              <label className="create-mock-label" htmlFor="mock-name">
-                Mock name
-              </label>
-
-              <input
-                id="mock-name"
-                className="create-mock-input"
-                type="text"
-                value={mockName}
-                onChange={(event) => {
-                  setMockName(event.target.value);
-                  setErrorMessage("");
-                }}
-                placeholder="Example: Mock 1.0"
-                autoFocus
-              />
-
-              {errorMessage && (
-                <p className="create-mock-error" role="alert">
-                  {errorMessage}
-                </p>
-              )}
-
-              <div className="create-modal-actions">
-                <button
-                  className="create-cancel-button"
-                  type="button"
-                  onClick={closeCreateForm}
-                >
-                  Cancel
-                </button>
-
-                <button className="create-submit-button" type="submit">
-                  Create Mock
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
-      )}
-    </main>
-  );
-                  }
+    }
