@@ -13,7 +13,9 @@ export default function Home() {
   return (
     <main className="landing-page">
       <div className="background-grid"></div>
+
       <div className="background-circle background-circle-one"></div>
+
       <div className="background-circle background-circle-two"></div>
 
       <section className="landing-content">
@@ -97,20 +99,20 @@ export default function Home() {
                 <span className="portal-arrow">→</span>
               </Link>
 
-              <button className="portal-card" type="button">
+              <Link href="/student" className="portal-card">
                 <span className="portal-icon">S</span>
 
                 <span className="portal-text">
                   <strong>Student Portal</strong>
-                  <small>Attempt an assigned mock test</small>
+                  <small>Enter your details and access a simulation</small>
                 </span>
 
                 <span className="portal-arrow">→</span>
-              </button>
+              </Link>
             </div>
           </section>
         </div>
       )}
     </main>
   );
-                }
+              }
