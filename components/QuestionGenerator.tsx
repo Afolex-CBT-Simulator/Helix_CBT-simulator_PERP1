@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { generateQuestions } from "@/lib/local-question-engine";
-
+import { generateQuestions } from "../lib/local-question-engine";
 type GeneratedQuestion = {
   question: string;
   options: string[];
