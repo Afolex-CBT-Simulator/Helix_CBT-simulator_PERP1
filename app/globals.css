@@ -3013,4 +3013,28 @@ h1 span {
     width: 100%;
   }
 }
+.question-valid-button:hover {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #15803d;
+}
 
+.question-invalid-button:hover {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.question-pending-button:hover {
+  border-color: #d97706;
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.question-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
