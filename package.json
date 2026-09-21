@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.7.2",
     "@supabase/supabase-js": "latest",
     "lucide-react": "latest",
     "next": "latest",
