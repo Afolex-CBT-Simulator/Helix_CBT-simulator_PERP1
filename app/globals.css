@@ -3038,3 +3038,54 @@ h1 span {
   gap: 8px;
   flex-wrap: wrap;
 }
+.question-validation-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.question-validation-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.question-validation-valid {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.question-validation-invalid {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.question-valid-button:hover:not(:disabled) {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.question-invalid-button:hover:not(:disabled) {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.question-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 720px) {
+  .question-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
