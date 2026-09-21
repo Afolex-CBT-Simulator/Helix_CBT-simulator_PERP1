@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseClient } from "../../../lib/supabase/client";
+import QuestionGenerator from "../../../components/QuestionGenerator";
 
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState("mock");
@@ -189,7 +190,26 @@ function MockSection() {
           {errorMessage}
         </p>
       )}
+  </section>
+    
+      <section className="dashboard-list-section">
+        <div className="dashboard-list-heading">
+          <div>
+            <p className="section-label section-label-light">
+              LOCAL NEURAL ENGINE
+            </p>
 
+            <h2>Generate draft questions</h2>
+
+            <p>
+              Create questions locally, review them, and then add approved
+              questions to your Mock.
+            </p>
+          </div>
+        </div>
+
+        <QuestionGenerator />
+      </section>
       <div className="dashboard-stats">
         <article className="stat-card">
           <span className="stat-label">Total Mocks</span>
