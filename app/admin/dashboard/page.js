@@ -62,9 +62,7 @@ export default function AdminDashboardPage() {
         </nav>
 
         {activeTab === "mock" && <MockSection />}
-
         {activeTab === "test" && <TestSection />}
-
         {activeTab === "candidates" && <CandidatesSection />}
       </section>
     </main>
@@ -149,6 +147,7 @@ function MockSection() {
   }
 
   const draftCount = mocks.filter((mock) => mock.status === "draft").length;
+
   const publishedCount = mocks.filter(
     (mock) => mock.status === "published",
   ).length;
@@ -190,8 +189,7 @@ function MockSection() {
           {errorMessage}
         </p>
       )}
-  </section>
-    
+
       <section className="dashboard-list-section">
         <div className="dashboard-list-heading">
           <div>
@@ -210,6 +208,7 @@ function MockSection() {
 
         <QuestionGenerator />
       </section>
+
       <div className="dashboard-stats">
         <article className="stat-card">
           <span className="stat-label">Total Mocks</span>
@@ -271,26 +270,26 @@ function MockSection() {
           ) : (
             <div className="mock-list">
               {mocks.map((mock) => (
-  <Link
-    href={`/admin/dashboard/mock/${mock.id}`}
-    className="mock-list-item mock-list-item-link"
-    key={mock.id}
-  >
-    <div>
-      <h3>{mock.name}</h3>
+                <Link
+                  href={`/admin/dashboard/mock/${mock.id}`}
+                  className="mock-list-item mock-list-item-link"
+                  key={mock.id}
+                >
+                  <div>
+                    <h3>{mock.name}</h3>
 
-      <p>
-        Created{" "}
-        {new Intl.DateTimeFormat("en", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(new Date(mock.created_at))}
-      </p>
-    </div>
+                    <p>
+                      Created{" "}
+                      {new Intl.DateTimeFormat("en", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(mock.created_at))}
+                    </p>
+                  </div>
 
-    <span className="mock-status-badge">{mock.status}</span>
-  </Link>
-))}
+                  <span className="mock-status-badge">{mock.status}</span>
+                </Link>
+              ))}
             </div>
           )}
         </div>
@@ -298,7 +297,10 @@ function MockSection() {
 
       {showForm && (
         <div className="dashboard-modal-overlay">
-          <section className="create-mock-modal" aria-labelledby="create-mock-title">
+          <section
+            className="create-mock-modal"
+            aria-labelledby="create-mock-title"
+          >
             <button
               className="create-modal-close"
               type="button"
@@ -785,4 +787,4 @@ function CandidatesSection() {
       )}
     </section>
   );
-            }
+}
