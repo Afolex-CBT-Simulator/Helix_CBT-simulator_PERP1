@@ -251,24 +251,26 @@ function MockSection() {
           ) : (
             <div className="mock-list">
               {mocks.map((mock) => (
-                <article className="mock-list-item" key={mock.id}>
-                  <div>
-                    <h3>{mock.name}</h3>
+  <Link
+    href={`/admin/dashboard/mock/${mock.id}`}
+    className="mock-list-item mock-list-item-link"
+    key={mock.id}
+  >
+    <div>
+      <h3>{mock.name}</h3>
 
-                    <p>
-                      Created{" "}
-                      {new Intl.DateTimeFormat("en", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      }).format(new Date(mock.created_at))}
-                    </p>
-                  </div>
+      <p>
+        Created{" "}
+        {new Intl.DateTimeFormat("en", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(mock.created_at))}
+      </p>
+    </div>
 
-                  <span className="mock-status-badge">
-                    {mock.status}
-                  </span>
-                </article>
-              ))}
+    <span className="mock-status-badge">{mock.status}</span>
+  </Link>
+))}
             </div>
           )}
         </div>
