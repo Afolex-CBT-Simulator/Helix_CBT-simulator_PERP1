@@ -18,18 +18,6 @@ const SUBJECT_MODES = [
   },
 ];
 
-const SYNC_STATUS_LABELS = {
-  draft: "Draft",
-  ready: "Ready",
-  synced: "Synced",
-};
-
-const NEXT_SYNC_STATUS = {
-  draft: "ready",
-  ready: "synced",
-  synced: "draft",
-};
-
 export default function MockDetailPage() {
   const params = useParams();
   const mockId = params?.id;
@@ -148,9 +136,9 @@ export default function MockDetailPage() {
     }
   }
 
-  async function toggleSyncStatus(subjectConfig) {
+  async function toggleSubjectSync(subjectConfig) {
     const nextStatus =
-      NEXT_SYNC_STATUS[subjectConfig.sync_status] || "ready";
+      subjectConfig.sync_status === "synced" ? "draft" : "synced";
 
     setUpdatingSubjectId(subjectConfig.id);
     setErrorMessage("");
@@ -165,6 +153,8 @@ export default function MockDetailPage() {
           sync_status: nextStatus,
         })
         .eq("id", subjectConfig.id)
+        .eq("parent_id", mockId)
+        .eq("parent_type", "mock")
         .select(
           "id, parent_id, parent_type, subject, mode, difficulty, time_allocated, sync_status, source_file_name, created_at",
         )
@@ -181,7 +171,9 @@ export default function MockDetailPage() {
       );
 
       setSuccessMessage(
-        `${subjectConfig.subject} marked as ${SYNC_STATUS_LABELS[nextStatus]}.`,
+        nextStatus === "synced"
+          ? `${subjectConfig.subject} marked as Synced.`
+          : `${subjectConfig.subject} returned to Draft.`,
       );
     } catch (error) {
       setErrorMessage(error.message || "Could not update subject status.");
@@ -371,31 +363,26 @@ export default function MockDetailPage() {
                       {subjectConfig.mode === "imported"
                         ? "Import"
                         : "Generate"}{" "}
-                      · Status:{" "}
-                      {SYNC_STATUS_LABELS[subjectConfig.sync_status] ||
-                        subjectConfig.sync_status}
+                      · Status: {subjectConfig.sync_status}
                     </p>
                   </div>
 
                   <div className="subject-list-actions">
                     <span className="mock-status-badge">
-                      {SYNC_STATUS_LABELS[subjectConfig.sync_status] ||
-                        subjectConfig.sync_status}
+                      {subjectConfig.sync_status}
                     </span>
 
                     <button
                       className="subject-sync-button"
                       type="button"
-                      onClick={() => toggleSyncStatus(subjectConfig)}
+                      onClick={() => toggleSubjectSync(subjectConfig)}
                       disabled={updatingSubjectId === subjectConfig.id}
                     >
                       {updatingSubjectId === subjectConfig.id
                         ? "Updating..."
-                        : `Mark as ${
-                            SYNC_STATUS_LABELS[
-                              NEXT_SYNC_STATUS[subjectConfig.sync_status]
-                            ] || "Ready"
-                          }`}
+                        : subjectConfig.sync_status === "synced"
+                          ? "Return to Draft"
+                          : "Mark as Synced"}
                     </button>
                   </div>
                 </article>
@@ -406,4 +393,4 @@ export default function MockDetailPage() {
       </section>
     </main>
   );
-      }
+}
