@@ -2944,19 +2944,32 @@ h1 span {
 .question-image-remove {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 6px;
+  min-height: 34px;
+  padding: 6px 0;
   border: 0;
   background: transparent;
   color: #b91c1c;
   font-size: 0.84rem;
   font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
   cursor: pointer;
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .question-image-remove:hover {
   color: #7f1d1d;
 }
 
+.question-image-remove:focus-visible {
+  outline: 3px solid rgba(185, 28, 28, 0.25);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
 .question-icon-button {
   display: inline-flex;
   align-items: center;
