@@ -15,13 +15,20 @@ export default function QuestionGenerator() {
   const [topic, setTopic] = useState("");
   const [level, setLevel] = useState("");
   const [count, setCount] = useState(5);
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [sourceNote, setSourceNote] = useState("");
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   async function handleGenerate() {
-    if (!subject || !topic || !level) {
+    if (!subject.trim() || !topic.trim() || !level.trim()) {
       setError("Please enter the subject, topic, and class level.");
+      return;
+    }
+
+    if (count < 1 || count > 10) {
+      setError("Please choose between 1 and 10 questions per generation.");
       return;
     }
 
@@ -31,10 +38,12 @@ export default function QuestionGenerator() {
 
     try {
       const result = await generateQuestions({
-        subject,
-        topic,
-        level,
-        count
+        subject: subject.trim(),
+        topic: topic.trim(),
+        level: level.trim(),
+        count,
+        customPrompt: customPrompt.trim(),
+        sourceNote: sourceNote.trim()
       });
 
       setQuestions(result);
@@ -88,6 +97,44 @@ export default function QuestionGenerator() {
           value={count}
           onChange={(event) => setCount(Number(event.target.value))}
         />
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="custom-prompt" className="font-medium">
+          Custom generation prompt
+        </label>
+
+        <textarea
+          id="custom-prompt"
+          className="min-h-40 w-full rounded-md border p-3"
+          placeholder="Optional: tell the engine how you want this batch generated. Leave blank to use the default instructions."
+          value={customPrompt}
+          onChange={(event) => setCustomPrompt(event.target.value)}
+        />
+
+        <p className="text-sm text-gray-600">
+          This prompt applies to the current generation only. The system will
+          still require the correct question format.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="source-note" className="font-medium">
+          Source note
+        </label>
+
+        <textarea
+          id="source-note"
+          className="min-h-48 w-full rounded-md border p-3"
+          placeholder="Optional: paste the relevant note content here. The engine will use it for the questions and explanations."
+          value={sourceNote}
+          onChange={(event) => setSourceNote(event.target.value)}
+        />
+
+        <p className="text-sm text-gray-600">
+          When provided, the source note is treated as the main reference for
+          the answers and explanations.
+        </p>
       </div>
 
       <button
