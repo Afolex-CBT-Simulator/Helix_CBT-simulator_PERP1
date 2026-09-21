@@ -2747,3 +2747,131 @@ h1 span {
     gap: 14px;
   }
 }
+.question-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.question-label-row .create-mock-label {
+  margin-bottom: 0;
+}
+
+.question-image-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.question-image-button:hover:not(:disabled) {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.question-image-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.question-image-input {
+  display: none;
+}
+
+.question-image-preview {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin: 12px 0 16px;
+  padding: 12px;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.question-image-preview img {
+  display: block;
+  max-width: min(100%, 520px);
+  max-height: 280px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.question-image-remove {
+  border: 0;
+  background: transparent;
+  color: #b91c1c;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.question-list-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.question-attached-image {
+  display: block;
+  max-width: min(100%, 520px);
+  max-height: 280px;
+  margin: 0 0 16px;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+.question-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.question-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.question-icon-button:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.question-delete-button:hover {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+@media (max-width: 720px) {
+  .question-list-item {
+    flex-direction: column;
+  }
+
+  .question-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
