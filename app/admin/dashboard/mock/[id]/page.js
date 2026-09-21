@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { getSupabaseClient } from "../../../../../lib/supabase/client";
 
@@ -19,10 +19,16 @@ const SUBJECT_MODES = [
 ];
 
 const OPTION_KEYS = ["A", "B", "C", "D"];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
+const QUESTION_COLUMNS =
+  "id, subject_config_id, question_text, options, correct_option, explanation, origin, validation_status, edited_flag, image_url, created_at";
 
 export default function MockDetailPage() {
   const params = useParams();
   const mockId = params?.id;
+  const imageInputRef = useRef(null);
 
   const [mock, setMock] = useState(null);
   const [subjects, setSubjects] = useState([]);
@@ -39,6 +45,10 @@ export default function MockDetailPage() {
   });
   const [correctOption, setCorrectOption] = useState("A");
   const [explanation, setExplanation] = useState("");
+  const [questionImageFile, setQuestionImageFile] = useState(null);
+  const [questionImagePreview, setQuestionImagePreview] = useState("");
+  const [existingImageUrl, setExistingImageUrl] = useState("");
+  const [editingQuestionId, setEditingQuestionId] = useState(null);
   const [questions, setQuestions] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -120,9 +130,7 @@ export default function MockDetailPage() {
 
         const { data, error } = await supabase
           .from("questions")
-          .select(
-            "id, subject_config_id, question_text, options, correct_option, explanation, origin, validation_status, edited_flag, created_at",
-          )
+          .select(QUESTION_COLUMNS)
           .eq("subject_config_id", selectedSubjectId)
           .order("created_at", { ascending: true });
 
@@ -139,10 +147,15 @@ export default function MockDetailPage() {
     loadQuestions();
   }, [selectedSubjectId]);
 
+  function clearMessages() {
+    setErrorMessage("");
+    setSuccessMessage("");
+  }
+
   async function addSubject(event) {
     event.preventDefault();
 
-    const cleanedSubjectName = subjectName.trim().replace(/\s+/g, " ");
+    const cleanedSubjectName = subjectName.trim().replace(/s+/g, " ");
 
     if (!cleanedSubjectName) {
       setErrorMessage("Please enter a subject name.");
@@ -151,8 +164,7 @@ export default function MockDetailPage() {
     }
 
     setSavingSubject(true);
-    setErrorMessage("");
-    setSuccessMessage("");
+    clearMessages();
 
     try {
       const supabase = getSupabaseClient();
@@ -193,8 +205,7 @@ export default function MockDetailPage() {
       subjectConfig.sync_status === "synced" ? "draft" : "synced";
 
     setUpdatingSubjectId(subjectConfig.id);
-    setErrorMessage("");
-    setSuccessMessage("");
+    clearMessages();
 
     try {
       const supabase = getSupabaseClient();
@@ -251,9 +262,89 @@ export default function MockDetailPage() {
     });
     setCorrectOption("A");
     setExplanation("");
+    setQuestionImageFile(null);
+    setQuestionImagePreview("");
+    setExistingImageUrl("");
+    setEditingQuestionId(null);
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
   }
 
-  async function addQuestion(event) {
+  function handleQuestionImageChange(event) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setErrorMessage("Please choose a PNG, JPEG, or WebP image.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      setErrorMessage("The image must be 5 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+
+    setQuestionImageFile(file);
+    setQuestionImagePreview(URL.createObjectURL(file));
+    setErrorMessage("");
+  }
+
+  async function uploadQuestionImage(file) {
+    const supabase = getSupabaseClient();
+    const fileExtension = file.name.split(".").pop()?.toLowerCase() || "png";
+    const filePath = `${mockId}/${selectedSubjectId}/${crypto.randomUUID()}.${fileExtension}`;
+
+    const { error } = await supabase.storage
+      .from("question-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    const { data } = supabase.storage
+      .from("question-images")
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  }
+
+  async function removeStoredImage(imageUrl) {
+    if (!imageUrl) {
+      return;
+    }
+
+    const marker = "/storage/v1/object/public/question-images/";
+    const markerIndex = imageUrl.indexOf(marker);
+
+    if (markerIndex === -1) {
+      return;
+    }
+
+    const filePath = imageUrl.slice(markerIndex + marker.length);
+    const supabase = getSupabaseClient();
+
+    const { error } = await supabase.storage
+      .from("question-images")
+      .remove([filePath]);
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  async function saveQuestion(event) {
     event.preventDefault();
 
     if (!selectedSubjectId) {
@@ -292,40 +383,143 @@ export default function MockDetailPage() {
     }
 
     setSavingQuestion(true);
-    setErrorMessage("");
-    setSuccessMessage("");
+    clearMessages();
+
+    try {
+      const supabase = getSupabaseClient();
+      let imageUrl = existingImageUrl || null;
+
+      if (questionImageFile) {
+        imageUrl = await uploadQuestionImage(questionImageFile);
+
+        if (editingQuestionId && existingImageUrl) {
+          await removeStoredImage(existingImageUrl);
+        }
+      }
+
+      const questionPayload = {
+        subject_config_id: selectedSubjectId,
+        question_text: questionText.trim(),
+        options: cleanedOptions,
+        correct_option: correctOption,
+        explanation: explanation.trim(),
+        origin: "ai-generated",
+        validation_status: "pending",
+        edited_flag: Boolean(editingQuestionId),
+        image_url: imageUrl,
+      };
+
+      if (editingQuestionId) {
+        const { data, error } = await supabase
+          .from("questions")
+          .update(questionPayload)
+          .eq("id", editingQuestionId)
+          .eq("subject_config_id", selectedSubjectId)
+          .select(QUESTION_COLUMNS)
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        setQuestions((currentQuestions) =>
+          currentQuestions.map((question) =>
+            question.id === data.id ? data : question,
+          ),
+        );
+
+        setSuccessMessage("Question updated successfully.");
+      } else {
+        const { data, error } = await supabase
+          .from("questions")
+          .insert(questionPayload)
+          .select(QUESTION_COLUMNS)
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        setQuestions((currentQuestions) => [
+          ...currentQuestions,
+          data,
+        ]);
+
+        setSuccessMessage("Question saved as Pending.");
+      }
+
+      clearQuestionForm();
+    } catch (error) {
+      setErrorMessage(error.message || "Could not save the question.");
+    } finally {
+      setSavingQuestion(false);
+    }
+  }
+
+  function editQuestion(question) {
+    setEditingQuestionId(question.id);
+    setSelectedSubjectId(question.subject_config_id);
+    setQuestionText(question.question_text);
+    setOptions({
+      A: question.options?.A || "",
+      B: question.options?.B || "",
+      C: question.options?.C || "",
+      D: question.options?.D || "",
+    });
+    setCorrectOption(question.correct_option);
+    setExplanation(question.explanation);
+    setExistingImageUrl(question.image_url || "");
+    setQuestionImageFile(null);
+    setQuestionImagePreview("");
+    clearMessages();
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  async function deleteQuestion(question) {
+    const confirmed = window.confirm(
+      "Delete this drafted question? This action cannot be undone.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    clearMessages();
 
     try {
       const supabase = getSupabaseClient();
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("questions")
-        .insert({
-          subject_config_id: selectedSubjectId,
-          question_text: questionText.trim(),
-          options: cleanedOptions,
-          correct_option: correctOption,
-          explanation: explanation.trim(),
-          origin: "ai-generated",
-          validation_status: "pending",
-          edited_flag: false,
-        })
-        .select(
-          "id, subject_config_id, question_text, options, correct_option, explanation, origin, validation_status, edited_flag, created_at",
-        )
-        .single();
+        .delete()
+        .eq("id", question.id)
+        .eq("subject_config_id", selectedSubjectId);
 
       if (error) {
         throw error;
       }
 
-      setQuestions((currentQuestions) => [...currentQuestions, data]);
-      clearQuestionForm();
-      setSuccessMessage("Question saved as Pending.");
+      if (question.image_url) {
+        await removeStoredImage(question.image_url);
+      }
+
+      setQuestions((currentQuestions) =>
+        currentQuestions.filter(
+          (currentQuestion) => currentQuestion.id !== question.id,
+        ),
+      );
+
+      if (editingQuestionId === question.id) {
+        clearQuestionForm();
+      }
+
+      setSuccessMessage("Question deleted successfully.");
     } catch (error) {
-      setErrorMessage(error.message || "Could not save the question.");
-    } finally {
-      setSavingQuestion(false);
+      setErrorMessage(error.message || "Could not delete the question.");
     }
   }
 
@@ -545,7 +739,9 @@ export default function MockDetailPage() {
                 QUESTION ENTRY
               </p>
 
-              <h2>Add a question</h2>
+              <h2>
+                {editingQuestionId ? "Edit question" : "Add a question"}
+              </h2>
             </div>
 
             <span className="dashboard-count-badge">
@@ -560,7 +756,7 @@ export default function MockDetailPage() {
             </div>
           ) : (
             <div className="create-mock-form-card">
-              <form onSubmit={addQuestion}>
+              <form onSubmit={saveQuestion}>
                 <label
                   className="create-mock-label"
                   htmlFor="question-subject"
@@ -574,7 +770,8 @@ export default function MockDetailPage() {
                   value={selectedSubjectId}
                   onChange={(event) => {
                     setSelectedSubjectId(event.target.value);
-                    setErrorMessage("");
+                    clearQuestionForm();
+                    clearMessages();
                   }}
                   disabled={savingQuestion}
                 >
@@ -588,12 +785,72 @@ export default function MockDetailPage() {
                   ))}
                 </select>
 
-                <label
-                  className="create-mock-label"
-                  htmlFor="question-text"
-                >
-                  Question text
-                </label>
+                <div className="question-label-row">
+                  <label className="create-mock-label" htmlFor="question-text">
+                    Question text
+                  </label>
+
+                  <button
+                    className="question-image-button"
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={savingQuestion}
+                    title="Attach an image"
+                    aria-label="Attach an image to this question"
+                  >
+                    🖼️
+                  </button>
+                </div>
+
+                <input
+                  ref={imageInputRef}
+                  className="question-image-input"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handleQuestionImageChange}
+                  disabled={savingQuestion}
+                />
+
+                {questionImagePreview && (
+                  <div className="question-image-preview">
+                    <img
+                      src={questionImagePreview}
+                      alt="New question attachment preview"
+                    />
+
+                    <button
+                      className="question-image-remove"
+                      type="button"
+                      onClick={() => {
+                        setQuestionImageFile(null);
+                        setQuestionImagePreview("");
+
+                        if (imageInputRef.current) {
+                          imageInputRef.current.value = "";
+                        }
+                      }}
+                    >
+                      Remove new image
+                    </button>
+                  </div>
+                )}
+
+                {!questionImagePreview && existingImageUrl && (
+                  <div className="question-image-preview">
+                    <img
+                      src={existingImageUrl}
+                      alt="Existing question attachment"
+                    />
+
+                    <button
+                      className="question-image-remove"
+                      type="button"
+                      onClick={() => setExistingImageUrl("")}
+                    >
+                      Remove existing image
+                    </button>
+                  </div>
+                )}
 
                 <textarea
                   id="question-text"
@@ -670,67 +927,112 @@ export default function MockDetailPage() {
 
                 <textarea
                   id="question-explanation"
-                   className="create-mock-input question-textarea"
-              value={explanation}
-              onChange={(event) => {
-                setExplanation(event.target.value);
-                setErrorMessage("");
-              }}
-              placeholder="Explain why the selected option is correct."
-              rows={4}
-              disabled={savingQuestion}
-            />
+                  className="create-mock-input question-textarea"
+                  value={explanation}
+                  onChange={(event) => {
+                    setExplanation(event.target.value);
+                    setErrorMessage("");
+                  }}
+                  placeholder="Explain why the selected option is correct."
+                  rows={4}
+                  disabled={savingQuestion}
+                />
 
-            <div className="create-modal-actions">
-              <button
-                className="create-submit-button"
-                type="submit"
-                disabled={savingQuestion}
-              >
-                {savingQuestion ? "Saving..." : "Save Question"}
-              </button>
+                <div className="create-modal-actions">
+                  {editingQuestionId && (
+                    <button
+                      className="create-cancel-button"
+                      type="button"
+                      onClick={clearQuestionForm}
+                      disabled={savingQuestion}
+                    >
+                      Cancel edit
+                    </button>
+                  )}
+
+                  <button
+                    className="create-submit-button"
+                    type="submit"
+                    disabled={savingQuestion}
+                  >
+                    {savingQuestion
+                      ? "Saving..."
+                      : editingQuestionId
+                        ? "Update Question"
+                        : "Save Question"}
+                  </button>
+                </div>
+              </form>
             </div>
-          </form>
-        </div>
-      )}
+          )}
 
-      {questions.length > 0 && (
-        <div className="question-list">
-          {questions.map((question, index) => (
-            <article className="question-list-item" key={question.id}>
-              <div>
-                <p className="question-number">
-                  Question {index + 1}
-                </p>
+          {questions.length > 0 && (
+            <div className="question-list">
+              {questions.map((question, index) => (
+                <article className="question-list-item" key={question.id}>
+                  <div className="question-list-content">
+                    <p className="question-number">
+                      Question {index + 1}
+                    </p>
 
-                <h3>{question.question_text}</h3>
+                    {question.image_url && (
+                      <img
+                        className="question-attached-image"
+                        src={question.image_url}
+                        alt="Attached question material"
+                      />
+                    )}
 
-                <ul className="question-option-list">
-                  {OPTION_KEYS.map((optionKey) => (
-                    <li key={optionKey}>
-                      <span>{optionKey}. </span>
-                      {question.options?.[optionKey]}
-                      {question.correct_option === optionKey && (
-                        <strong> - Correct</strong>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                    <h3>{question.question_text}</h3>
 
-                <p className="question-explanation">
-                  {question.explanation}
-                </p>
-              </div>
+                    <ul className="question-option-list">
+                      {OPTION_KEYS.map((optionKey) => (
+                        <li key={optionKey}>
+                          <span>{optionKey}.</span>{" "}
+                          {question.options?.[optionKey]}
+                          {question.correct_option === optionKey && (
+                            <strong> — Correct</strong>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
 
-              <span className="mock-status-badge">
-                {question.validation_status}
-              </span>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
-  </section>
-</main>
-);
+                    <p className="question-explanation">
+                      {question.explanation}
+                    </p>
+                  </div>
+
+                  <div className="question-actions">
+                    <span className="mock-status-badge">
+                      {question.validation_status}
+                    </span>
+
+                    <button
+                      className="question-icon-button"
+                      type="button"
+                      onClick={() => editQuestion(question)}
+                      title="Edit question"
+                      aria-label="Edit question"
+                    >
+                      ✏️
+                    </button>
+
+                    <button
+                      className="question-icon-button question-delete-button"
+                      type="button"
+                      onClick={() => deleteQuestion(question)}
+                      title="Delete question"
+                      aria-label="Delete question"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      </section>
+    </main>
+  );
 }
