@@ -841,7 +841,11 @@ export default function MockDetailPage() {
                         }
                       }}
                     >
-                      <X size={16} strokeWidth={2} aria-hidden="true" />
+                      <X
+                        size={16}
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      />
                       <span>Remove new image</span>
                     </button>
                   </div>
@@ -859,7 +863,11 @@ export default function MockDetailPage() {
                       type="button"
                       onClick={() => setExistingImageUrl("")}
                     >
-                      <X size={16} strokeWidth={2} aria-hidden="true" />
+                      <X
+                        size={16}
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      />
                       <span>Remove existing image</span>
                     </button>
                   </div>
