@@ -112,7 +112,7 @@ function MockSection() {
   async function createMock(event) {
     event.preventDefault();
 
-    const cleanedName = mockName.trim().replace(/s+/g, " ");
+    const cleanedName = mockName.trim().replace(/\s+/g, " ");
 
     if (!cleanedName) {
       setErrorMessage("Please enter a Mock name.");
@@ -514,7 +514,7 @@ function CandidatesSection() {
   async function addCandidate(event) {
     event.preventDefault();
 
-    const cleanedName = fullName.trim().replace(/s+/g, " ");
+    const cleanedName = fullName.trim().replace(/\s+/g, " ");
     const normalizedId = normalizeCandidateId(candidateId);
 
     if (!cleanedName) {
