@@ -71,6 +71,87 @@ export default function AdminDashboardPage() {
 }
 
 function MockSection() {
+  const [mocks, setMocks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [mockName, setMockName] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function loadMocks() {
+    try {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from("mocks")
+        .select("id, name, status, created_at")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setMocks(data || []);
+    } catch (error) {
+      setErrorMessage(error.message || "Could not load Mocks.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadMocks();
+  }, []);
+
+  function closeForm() {
+    setShowForm(false);
+    setMockName("");
+    setErrorMessage("");
+  }
+
+  async function createMock(event) {
+    event.preventDefault();
+
+    const cleanedName = mockName.trim().replace(/s+/g, " ");
+
+    if (!cleanedName) {
+      setErrorMessage("Please enter a Mock name.");
+      return;
+    }
+
+    setSaving(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const supabase = getSupabaseClient();
+
+      const { error } = await supabase.from("mocks").insert({
+        name: cleanedName,
+        status: "draft",
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      closeForm();
+      setSuccessMessage("Mock saved as Draft.");
+      setLoading(true);
+      await loadMocks();
+    } catch (error) {
+      setErrorMessage(error.message || "Could not save Mock.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const draftCount = mocks.filter((mock) => mock.status === "draft").length;
+  const publishedCount = mocks.filter(
+    (mock) => mock.status === "published",
+  ).length;
+
   return (
     <>
       <div className="dashboard-welcome-card">
@@ -84,41 +165,184 @@ function MockSection() {
           </p>
         </div>
 
-        <Link
-          href="/admin/dashboard/mock"
-          className="dashboard-primary-button dashboard-action-link"
+        <button
+          className="dashboard-primary-button"
+          type="button"
+          onClick={() => {
+            setErrorMessage("");
+            setSuccessMessage("");
+            setShowForm(true);
+          }}
         >
           Create New Mock
-        </Link>
+        </button>
       </div>
+
+      {successMessage && (
+        <p className="candidate-upload-success" role="status">
+          {successMessage}
+        </p>
+      )}
+
+      {errorMessage && !showForm && (
+        <p className="create-mock-error" role="alert">
+          {errorMessage}
+        </p>
+      )}
 
       <div className="dashboard-stats">
         <article className="stat-card">
           <span className="stat-label">Total Mocks</span>
-          <strong>0</strong>
+          <strong>{mocks.length}</strong>
           <span className="stat-note">Draft and published</span>
         </article>
 
         <article className="stat-card">
           <span className="stat-label">Published Mocks</span>
-          <strong>0</strong>
+          <strong>{publishedCount}</strong>
           <span className="stat-note">Available to Candidates</span>
         </article>
 
         <article className="stat-card">
-          <span className="stat-label">Mock Attempts</span>
-          <strong>0</strong>
-          <span className="stat-note">Candidate activity</span>
+          <span className="stat-label">Draft Mocks</span>
+          <strong>{draftCount}</strong>
+          <span className="stat-note">Still being configured</span>
         </article>
       </div>
 
-      <EmptySection
-        label="MOCKS"
-        title="Your Mock examinations"
-        message="Create a Mock to begin adding subjects, question banks, and publishing settings."
-        link="/admin/dashboard/mock"
-        linkText="Start a Mock"
-      />
+      <section className="dashboard-list-section">
+        <div className="dashboard-list-heading">
+          <div>
+            <p className="section-label section-label-light">MOCKS</p>
+            <h2>Your Mock examinations</h2>
+          </div>
+
+          <span className="dashboard-count-badge">
+            {mocks.length} {mocks.length === 1 ? "item" : "items"}
+          </span>
+        </div>
+
+        <div className="dashboard-empty-state">
+          {loading ? (
+            <p>Loading Mocks...</p>
+          ) : mocks.length === 0 ? (
+            <>
+              <div className="empty-icon">+</div>
+
+              <h2>No Mocks created yet</h2>
+
+              <p>
+                Create a Mock to begin adding subjects, question banks, and
+                publishing settings.
+              </p>
+
+              <button
+                className="dashboard-secondary-link"
+                type="button"
+                onClick={() => {
+                  setErrorMessage("");
+                  setSuccessMessage("");
+                  setShowForm(true);
+                }}
+              >
+                Start a Mock
+              </button>
+            </>
+          ) : (
+            <div className="mock-list">
+              {mocks.map((mock) => (
+                <article className="mock-list-item" key={mock.id}>
+                  <div>
+                    <h3>{mock.name}</h3>
+
+                    <p>
+                      Created{" "}
+                      {new Intl.DateTimeFormat("en", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(mock.created_at))}
+                    </p>
+                  </div>
+
+                  <span className="mock-status-badge">
+                    {mock.status}
+                  </span>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {showForm && (
+        <div className="dashboard-modal-overlay">
+          <section className="create-mock-modal" aria-labelledby="create-mock-title">
+            <button
+              className="create-modal-close"
+              type="button"
+              onClick={closeForm}
+              aria-label="Close Mock form"
+            >
+              ×
+            </button>
+
+            <p className="section-label section-label-dark">
+              MOCK CONFIGURATION
+            </p>
+
+            <h2 id="create-mock-title">Create New Mock</h2>
+
+            <p className="create-modal-description">
+              Enter a name and save this Mock as a Draft.
+            </p>
+
+            <form onSubmit={createMock}>
+              <label className="create-mock-label" htmlFor="mock-name">
+                Mock Name
+              </label>
+
+              <input
+                id="mock-name"
+                className="create-mock-input"
+                type="text"
+                value={mockName}
+                onChange={(event) => {
+                  setMockName(event.target.value);
+                  setErrorMessage("");
+                }}
+                placeholder="Example: 2027 UTME Biology Mock 1"
+                maxLength={150}
+                autoFocus
+              />
+
+              {errorMessage && (
+                <p className="create-mock-error" role="alert">
+                  {errorMessage}
+                </p>
+              )}
+
+              <div className="create-modal-actions">
+                <button
+                  className="create-cancel-button"
+                  type="button"
+                  onClick={closeForm}
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="create-submit-button"
+                  type="submit"
+                  disabled={saving}
+                >
+                  {saving ? "Saving..." : "Save as Draft"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </>
   );
 }
