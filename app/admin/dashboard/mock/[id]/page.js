@@ -18,6 +18,18 @@ const SUBJECT_MODES = [
   },
 ];
 
+const SYNC_STATUS_LABELS = {
+  draft: "Draft",
+  ready: "Ready",
+  synced: "Synced",
+};
+
+const NEXT_SYNC_STATUS = {
+  draft: "ready",
+  ready: "synced",
+  synced: "draft",
+};
+
 export default function MockDetailPage() {
   const params = useParams();
   const mockId = params?.id;
@@ -28,6 +40,7 @@ export default function MockDetailPage() {
   const [subjectMode, setSubjectMode] = useState("imported");
   const [loading, setLoading] = useState(true);
   const [savingSubject, setSavingSubject] = useState(false);
+  const [updatingSubjectId, setUpdatingSubjectId] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -132,6 +145,48 @@ export default function MockDetailPage() {
       setErrorMessage(error.message || "Could not add this subject.");
     } finally {
       setSavingSubject(false);
+    }
+  }
+
+  async function toggleSyncStatus(subjectConfig) {
+    const nextStatus =
+      NEXT_SYNC_STATUS[subjectConfig.sync_status] || "ready";
+
+    setUpdatingSubjectId(subjectConfig.id);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from("subject_configs")
+        .update({
+          sync_status: nextStatus,
+        })
+        .eq("id", subjectConfig.id)
+        .select(
+          "id, parent_id, parent_type, subject, mode, difficulty, time_allocated, sync_status, source_file_name, created_at",
+        )
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setSubjects((currentSubjects) =>
+        currentSubjects.map((subject) =>
+          subject.id === data.id ? data : subject,
+        ),
+      );
+
+      setSuccessMessage(
+        `${subjectConfig.subject} marked as ${SYNC_STATUS_LABELS[nextStatus]}.`,
+      );
+    } catch (error) {
+      setErrorMessage(error.message || "Could not update subject status.");
+    } finally {
+      setUpdatingSubjectId(null);
     }
   }
 
@@ -316,13 +371,33 @@ export default function MockDetailPage() {
                       {subjectConfig.mode === "imported"
                         ? "Import"
                         : "Generate"}{" "}
-                      · Status: {subjectConfig.sync_status}
+                      · Status:{" "}
+                      {SYNC_STATUS_LABELS[subjectConfig.sync_status] ||
+                        subjectConfig.sync_status}
                     </p>
                   </div>
 
-                  <span className="mock-status-badge">
-                    {subjectConfig.sync_status}
-                  </span>
+                  <div className="subject-list-actions">
+                    <span className="mock-status-badge">
+                      {SYNC_STATUS_LABELS[subjectConfig.sync_status] ||
+                        subjectConfig.sync_status}
+                    </span>
+
+                    <button
+                      className="subject-sync-button"
+                      type="button"
+                      onClick={() => toggleSyncStatus(subjectConfig)}
+                      disabled={updatingSubjectId === subjectConfig.id}
+                    >
+                      {updatingSubjectId === subjectConfig.id
+                        ? "Updating..."
+                        : `Mark as ${
+                            SYNC_STATUS_LABELS[
+                              NEXT_SYNC_STATUS[subjectConfig.sync_status]
+                            ] || "Ready"
+                          }`}
+                    </button>
+                  </div>
                 </article>
               ))
             )}
@@ -331,4 +406,4 @@ export default function MockDetailPage() {
       </section>
     </main>
   );
-  }
+      }
