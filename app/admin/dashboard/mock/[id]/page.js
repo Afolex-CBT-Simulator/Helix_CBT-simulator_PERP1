@@ -488,6 +488,84 @@ export default function MockDetailPage() {
     });
   }
 
+  async function updateQuestionValidation(question, nextStatus) {
+    setUpdatingQuestionId(question.id);
+    clearMessages();
+
+    try {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from("questions")
+        .update({
+          validation_status: nextStatus,
+        })
+        .eq("id", question.id)
+        .eq("subject_config_id", selectedSubjectId)
+        .select(QUESTION_COLUMNS)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setQuestions((currentQuestions) =>
+        currentQuestions.map((currentQuestion) =>
+          currentQuestion.id === data.id ? data : currentQuestion,
+        ),
+      );
+
+      setSuccessMessage(
+        nextStatus === "valid"
+          ? "Question marked as Valid."
+          : "Question marked as Invalid.",
+      );
+    } catch (error) {
+      setErrorMessage(
+        error.message || "Could not update question validation.",
+      );
+    } finally {
+      setUpdatingQuestionId(null);
+    }
+  }
+
+  async function resetQuestionValidation(question) {
+    setUpdatingQuestionId(question.id);
+    clearMessages();
+
+    try {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from("questions")
+        .update({
+          validation_status: "pending",
+        })
+        .eq("id", question.id)
+        .eq("subject_config_id", selectedSubjectId)
+        .select(QUESTION_COLUMNS)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setQuestions((currentQuestions) =>
+        currentQuestions.map((currentQuestion) =>
+          currentQuestion.id === data.id ? data : currentQuestion,
+        ),
+      );
+
+      setSuccessMessage("Question returned to Pending.");
+    } catch (error) {
+      setErrorMessage(
+        error.message || "Could not reset question validation.",
+      );
+    } finally {
+      setUpdatingQuestionId(null);
+    }
+  }
+
   async function deleteQuestion(question) {
     const confirmed = window.confirm(
       "Delete this drafted question? This action cannot be undone.",
@@ -529,41 +607,6 @@ export default function MockDetailPage() {
       setSuccessMessage("Question deleted successfully.");
     } catch (error) {
       setErrorMessage(error.message || "Could not delete the question.");
-    }
-  }
-
-  async function updateQuestionValidation(question, nextStatus) {
-    setUpdatingQuestionId(question.id);
-    clearMessages();
-
-    try {
-      const supabase = getSupabaseClient();
-
-      const { data, error } = await supabase
-        .from("questions")
-        .update({
-          validation_status: nextStatus,
-        })
-        .eq("id", question.id)
-        .eq("subject_config_id", selectedSubjectId)
-        .select(QUESTION_COLUMNS)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      setQuestions((currentQuestions) =>
-        currentQuestions.map((currentQuestion) =>
-          currentQuestion.id === data.id ? data : currentQuestion,
-        ),
-      );
-
-      setSuccessMessage(`Question marked as ${nextStatus}.`);
-    } catch (error) {
-      setErrorMessage(error.message || "Could not update validation status.");
-    } finally {
-      setUpdatingQuestionId(null);
     }
   }
 
@@ -726,7 +769,13 @@ export default function MockDetailPage() {
           <div className="subject-list">
             {subjects.length === 0 ? (
               <div className="dashboard-empty-state">
-                <p>No subjects added yet.</p>
+                <div className="empty-icon">+</div>
+
+                <h2>No subjects added yet</h2>
+
+                <p>
+                  Add the first subject to begin configuring this Mock.
+                </p>
               </div>
             ) : (
               subjects.map((subjectConfig) => (
@@ -1048,66 +1097,52 @@ export default function MockDetailPage() {
                   </div>
 
                   <div className="question-actions">
-                    <span className="mock-status-badge">
+                    <span
+                      className={`question-validation-badge question-validation-${question.validation_status}`}
+                    >
                       {question.validation_status}
                     </span>
 
-                    {question.validation_status !== "valid" && (
-                      <button
-                        className="question-icon-button question-valid-button"
-                        type="button"
-                        onClick={() =>
-                          updateQuestionValidation(question, "valid")
-                        }
-                        disabled={updatingQuestionId === question.id}
-                        title="Mark question as valid"
-                        aria-label="Mark question as valid"
-                      >
-                        <Check
-                          size={17}
-                          strokeWidth={2}
-                          aria-hidden="true"
-                        />
-                      </button>
-                    )}
+                    <button
+                      className="question-icon-button question-valid-button"
+                      type="button"
+                      onClick={() =>
+                        updateQuestionValidation(question, "valid")
+                      }
+                      disabled={updatingQuestionId === question.id}
+                      title="Mark question as valid"
+                      aria-label="Mark question as valid"
+                    >
+                      <Check size={17} strokeWidth={2} aria-hidden="true" />
+                    </button>
 
-                    {question.validation_status !== "invalid" && (
-                      <button
-                        className="question-icon-button question-invalid-button"
-                        type="button"
-                        onClick={() =>
-                          updateQuestionValidation(question, "invalid")
-                        }
-                        disabled={updatingQuestionId === question.id}
-                        title="Mark question as invalid"
-                        aria-label="Mark question as invalid"
-                      >
-                        <X
-                          size={17}
-                          strokeWidth={2}
-                          aria-hidden="true"
-                        />
-                      </button>
-                    )}
+                    <button
+                      className="question-icon-button question-invalid-button"
+                      type="button"
+                      onClick={() =>
+                        updateQuestionValidation(question, "invalid")
+                      }
+                      disabled={updatingQuestionId === question.id}
+                      title="Mark question as invalid"
+                      aria-label="Mark question as invalid"
+                    >
+                      <X size={17} strokeWidth={2} aria-hidden="true" />
+                    </button>
 
-                    {question.validation_status !== "pending" && (
-                      <button
-                        className="question-icon-button question-pending-button"
-                        type="button"
-                        onClick={() =>
-                          updateQuestionValidation(question, "pending")
-                        }
-                        disabled={updatingQuestionId === question.id}
-                        title="Return question to pending"
-                        aria-label="Return question to pending"
-                      >
-                        <RotateCcw
-                          size={17}
-                          strokeWidth={2}
-                          aria-hidden="true"
-                        />
-                      </button>
-                    )}
+                    <button
+                      className="question-icon-button"
+                      type="button"
+                      onClick={() => resetQuestionValidation(question)}
+                      disabled={updatingQuestionId === question.id}
+                      title="Return question to pending"
+                      aria-label="Return question to pending"
+                    >
+                      <RotateCcw
+                        size={17}
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      />
+                    </button>
 
                     <button
                       className="question-icon-button"
