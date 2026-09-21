@@ -18,16 +18,32 @@ const SUBJECT_MODES = [
   },
 ];
 
+const OPTION_KEYS = ["A", "B", "C", "D"];
+
 export default function MockDetailPage() {
   const params = useParams();
   const mockId = params?.id;
 
   const [mock, setMock] = useState(null);
   const [subjects, setSubjects] = useState([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [subjectName, setSubjectName] = useState("");
   const [subjectMode, setSubjectMode] = useState("imported");
+
+  const [questionText, setQuestionText] = useState("");
+  const [options, setOptions] = useState({
+    A: "",
+    B: "",
+    C: "",
+    D: "",
+  });
+  const [correctOption, setCorrectOption] = useState("A");
+  const [explanation, setExplanation] = useState("");
+  const [questions, setQuestions] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [savingSubject, setSavingSubject] = useState(false);
+  const [savingQuestion, setSavingQuestion] = useState(false);
   const [updatingSubjectId, setUpdatingSubjectId] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -78,6 +94,10 @@ export default function MockDetailPage() {
 
         setMock(mockData);
         setSubjects(subjectData || []);
+
+        if (subjectData?.length > 0) {
+          setSelectedSubjectId(subjectData[0].id);
+        }
       } catch (error) {
         setErrorMessage(error.message || "Could not load this Mock.");
       } finally {
@@ -88,10 +108,41 @@ export default function MockDetailPage() {
     loadMockAndSubjects();
   }, [mockId]);
 
+  useEffect(() => {
+    async function loadQuestions() {
+      if (!selectedSubjectId) {
+        setQuestions([]);
+        return;
+      }
+
+      try {
+        const supabase = getSupabaseClient();
+
+        const { data, error } = await supabase
+          .from("questions")
+          .select(
+            "id, subject_config_id, question_text, options, correct_option, explanation, origin, validation_status, edited_flag, created_at",
+          )
+          .eq("subject_config_id", selectedSubjectId)
+          .order("created_at", { ascending: true });
+
+        if (error) {
+          throw error;
+        }
+
+        setQuestions(data || []);
+      } catch (error) {
+        setErrorMessage(error.message || "Could not load questions.");
+      }
+    }
+
+    loadQuestions();
+  }, [selectedSubjectId]);
+
   async function addSubject(event) {
     event.preventDefault();
 
-    const cleanedSubjectName = subjectName.trim().replace(/s+/g, " ");
+    const cleanedSubjectName = subjectName.trim().replace(/\s+/g, " ");
 
     if (!cleanedSubjectName) {
       setErrorMessage("Please enter a subject name.");
@@ -126,6 +177,7 @@ export default function MockDetailPage() {
       }
 
       setSubjects((currentSubjects) => [...currentSubjects, data]);
+      setSelectedSubjectId(data.id);
       setSubjectName("");
       setSubjectMode("imported");
       setSuccessMessage("Subject added as Draft.");
@@ -182,6 +234,101 @@ export default function MockDetailPage() {
     }
   }
 
+  function updateOption(optionKey, value) {
+    setOptions((currentOptions) => ({
+      ...currentOptions,
+      [optionKey]: value,
+    }));
+  }
+
+  function clearQuestionForm() {
+    setQuestionText("");
+    setOptions({
+      A: "",
+      B: "",
+      C: "",
+      D: "",
+    });
+    setCorrectOption("A");
+    setExplanation("");
+  }
+
+  async function addQuestion(event) {
+    event.preventDefault();
+
+    if (!selectedSubjectId) {
+      setErrorMessage("Add or select a subject before adding a question.");
+      setSuccessMessage("");
+      return;
+    }
+
+    if (!questionText.trim()) {
+      setErrorMessage("Please enter the question text.");
+      setSuccessMessage("");
+      return;
+    }
+
+    const cleanedOptions = Object.fromEntries(
+      OPTION_KEYS.map((optionKey) => [
+        optionKey,
+        options[optionKey].trim(),
+      ]),
+    );
+
+    const missingOption = OPTION_KEYS.find(
+      (optionKey) => !cleanedOptions[optionKey],
+    );
+
+    if (missingOption) {
+      setErrorMessage(`Please enter option ${missingOption}.`);
+      setSuccessMessage("");
+      return;
+    }
+
+    if (!explanation.trim()) {
+      setErrorMessage("Please enter an explanation.");
+      setSuccessMessage("");
+      return;
+    }
+
+    setSavingQuestion(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from("questions")
+        .insert({
+          subject_config_id: selectedSubjectId,
+          question_text: questionText.trim(),
+          options: cleanedOptions,
+          correct_option: correctOption,
+          explanation: explanation.trim(),
+          origin: "ai-generated",
+          validation_status: "pending",
+          edited_flag: false,
+        })
+        .select(
+          "id, subject_config_id, question_text, options, correct_option, explanation, origin, validation_status, edited_flag, created_at",
+        )
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setQuestions((currentQuestions) => [...currentQuestions, data]);
+      clearQuestionForm();
+      setSuccessMessage("Question saved as Pending.");
+    } catch (error) {
+      setErrorMessage(error.message || "Could not save the question.");
+    } finally {
+      setSavingQuestion(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="dashboard-page">
@@ -224,7 +371,7 @@ export default function MockDetailPage() {
           <h1>{mock.name}</h1>
 
           <p className="dashboard-subtitle">
-            Configure subjects for this Mock.
+            Configure subjects and questions for this Mock.
           </p>
         </div>
 
@@ -241,8 +388,8 @@ export default function MockDetailPage() {
             <h2>{mock.name}</h2>
 
             <p>
-              This page belongs only to this Mock. Subjects added here will not
-              appear under another Mock.
+              This page belongs only to this Mock. Subjects and questions added
+              here will not appear under another Mock.
             </p>
           </div>
 
@@ -390,7 +537,200 @@ export default function MockDetailPage() {
             )}
           </div>
         </section>
-      </section>
-    </main>
-  );
+
+        <section className="dashboard-list-section">
+          <div className="dashboard-list-heading">
+            <div>
+              <p className="section-label section-label-light">
+                QUESTION ENTRY
+              </p>
+
+              <h2>Add a question</h2>
+            </div>
+
+            <span className="dashboard-count-badge">
+              {questions.length}{" "}
+              {questions.length === 1 ? "question" : "questions"}
+            </span>
+          </div>
+
+          {subjects.length === 0 ? (
+            <div className="dashboard-empty-state">
+              <p>Add a subject before adding questions.</p>
+            </div>
+          ) : (
+            <div className="create-mock-form-card">
+              <form onSubmit={addQuestion}>
+                <label
+                  className="create-mock-label"
+                  htmlFor="question-subject"
+                >
+                  Subject
+                </label>
+
+                <select
+                  id="question-subject"
+                  className="create-mock-input"
+                  value={selectedSubjectId}
+                  onChange={(event) => {
+                    setSelectedSubjectId(event.target.value);
+                    setErrorMessage("");
+                  }}
+                  disabled={savingQuestion}
+                >
+                  {subjects.map((subjectConfig) => (
+                    <option
+                      value={subjectConfig.id}
+                      key={subjectConfig.id}
+                    >
+                      {subjectConfig.subject}
+                    </option>
+                  ))}
+                </select>
+
+                <label
+                  className="create-mock-label"
+                  htmlFor="question-text"
+                >
+                  Question text
+                </label>
+
+                <textarea
+                  id="question-text"
+                  className="create-mock-input question-textarea"
+                  value={questionText}
+                  onChange={(event) => {
+                    setQuestionText(event.target.value);
+                    setErrorMessage("");
+                  }}
+                  placeholder="Example: What is the chemical formula for water, H₂O?"
+                  rows={5}
+                  disabled={savingQuestion}
+                />
+
+                <p className="question-format-help">
+                  Scientific characters such as H₂O, x², α, β, Δ, √, and ∫
+                  are supported as normal text.
+                </p>
+
+                <div className="question-options-grid">
+                  {OPTION_KEYS.map((optionKey) => (
+                    <div key={optionKey}>
+                      <label
+                        className="create-mock-label"
+                        htmlFor={`question-option-${optionKey}`}
+                      >
+                        Option {optionKey}
+                      </label>
+
+                      <textarea
+                        id={`question-option-${optionKey}`}
+                        className="create-mock-input question-option-input"
+                        value={options[optionKey]}
+                        onChange={(event) =>
+                          updateOption(optionKey, event.target.value)
+                        }
+                        rows={3}
+                        disabled={savingQuestion}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <fieldset className="correct-option-fieldset">
+                  <legend className="create-mock-label">
+                    Correct option
+                  </legend>
+
+                  <div className="correct-option-list">
+                    {OPTION_KEYS.map((optionKey) => (
+                      <label key={optionKey}>
+                        <input
+                          type="radio"
+                          name="correct-option"
+                          value={optionKey}
+                          checked={correctOption === optionKey}
+                          onChange={(event) =>
+                            setCorrectOption(event.target.value)
+                          }
+                          disabled={savingQuestion}
+                        />
+                        <span>{optionKey}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <label
+                  className="create-mock-label"
+                  htmlFor="question-explanation"
+                >
+                  Explanation
+                </label>
+
+                <textarea
+                  id="question-explanation"
+                   className="create-mock-input question-textarea"
+              value={explanation}
+              onChange={(event) => {
+                setExplanation(event.target.value);
+                setErrorMessage("");
+              }}
+              placeholder="Explain why the selected option is correct."
+              rows={4}
+              disabled={savingQuestion}
+            />
+
+            <div className="create-modal-actions">
+              <button
+                className="create-submit-button"
+                type="submit"
+                disabled={savingQuestion}
+              >
+                {savingQuestion ? "Saving..." : "Save Question"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {questions.length > 0 && (
+        <div className="question-list">
+          {questions.map((question, index) => (
+            <article className="question-list-item" key={question.id}>
+              <div>
+                <p className="question-number">
+                  Question {index + 1}
+                </p>
+
+                <h3>{question.question_text}</h3>
+
+                <ul className="question-option-list">
+                  {OPTION_KEYS.map((optionKey) => (
+                    <li key={optionKey}>
+                      <span>{optionKey}. </span>
+                      {question.options?.[optionKey]}
+                      {question.correct_option === optionKey && (
+                        <strong> - Correct</strong>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="question-explanation">
+                  {question.explanation}
+                </p>
+              </div>
+
+              <span className="mock-status-badge">
+                {question.validation_status}
+              </span>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  </section>
+</main>
+);
 }
