@@ -143,4 +143,4 @@ export default function MockDetailPage() {
       </section>
     </main>
   );
-        }
+}
