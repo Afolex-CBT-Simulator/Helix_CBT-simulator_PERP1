@@ -112,7 +112,7 @@ export default function MockDetailPage() {
           parent_type: "mock",
           subject: cleanedSubjectName,
           mode: subjectMode,
-          time_allocated: 0,
+          time_allocated: 1,
           sync_status: "draft",
         })
         .select(
@@ -331,4 +331,4 @@ export default function MockDetailPage() {
       </section>
     </main>
   );
-      }
+  }
