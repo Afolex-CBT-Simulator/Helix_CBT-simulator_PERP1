@@ -7,12 +7,12 @@ import { getSupabaseClient } from "../../../../../lib/supabase/client";
 
 const SUBJECT_MODES = [
   {
-    value: "import",
+    value: "imported",
     label: "Import",
     description: "Use an existing question source later.",
   },
   {
-    value: "generate",
+    value: "generated",
     label: "Generate",
     description: "Generate questions with the Neural Engine later.",
   },
@@ -25,7 +25,7 @@ export default function MockDetailPage() {
   const [mock, setMock] = useState(null);
   const [subjects, setSubjects] = useState([]);
   const [subjectName, setSubjectName] = useState("");
-  const [subjectMode, setSubjectMode] = useState("import");
+  const [subjectMode, setSubjectMode] = useState("imported");
   const [loading, setLoading] = useState(true);
   const [savingSubject, setSavingSubject] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -40,25 +40,27 @@ export default function MockDetailPage() {
       try {
         const supabase = getSupabaseClient();
 
-        const [{ data: mockData, error: mockError }, { data: subjectData, error: subjectError }] =
-          await Promise.all([
-            supabase
-              .from("mocks")
-              .select(
-                "id, name, status, passcode, max_tab_switches_allowed, return_countdown_seconds, created_at",
-              )
-              .eq("id", mockId)
-              .maybeSingle(),
+        const [
+          { data: mockData, error: mockError },
+          { data: subjectData, error: subjectError },
+        ] = await Promise.all([
+          supabase
+            .from("mocks")
+            .select(
+              "id, name, status, passcode, max_tab_switches_allowed, return_countdown_seconds, created_at",
+            )
+            .eq("id", mockId)
+            .maybeSingle(),
 
-            supabase
-              .from("subject_configs")
-              .select(
-                "id, parent_id, parent_type, subject, mode, difficulty, time_allocated, sync_status, source_file_name, created_at",
-              )
-              .eq("parent_id", mockId)
-              .eq("parent_type", "mock")
-              .order("created_at", { ascending: true }),
-          ]);
+          supabase
+            .from("subject_configs")
+            .select(
+              "id, parent_id, parent_type, subject, mode, difficulty, time_allocated, sync_status, source_file_name, created_at",
+            )
+            .eq("parent_id", mockId)
+            .eq("parent_type", "mock")
+            .order("created_at", { ascending: true }),
+        ]);
 
         if (mockError) {
           throw mockError;
@@ -124,7 +126,7 @@ export default function MockDetailPage() {
 
       setSubjects((currentSubjects) => [...currentSubjects, data]);
       setSubjectName("");
-      setSubjectMode("import");
+      setSubjectMode("imported");
       setSuccessMessage("Subject added as Draft.");
     } catch (error) {
       setErrorMessage(error.message || "Could not add this subject.");
@@ -310,8 +312,11 @@ export default function MockDetailPage() {
                     <h3>{subjectConfig.subject}</h3>
 
                     <p>
-                      Mode: {subjectConfig.mode} · Status:{" "}
-                      {subjectConfig.sync_status}
+                      Mode:{" "}
+                      {subjectConfig.mode === "imported"
+                        ? "Import"
+                        : "Generate"}{" "}
+                      · Status: {subjectConfig.sync_status}
                     </p>
                   </div>
 
@@ -326,4 +331,4 @@ export default function MockDetailPage() {
       </section>
     </main>
   );
-    }
+      }
