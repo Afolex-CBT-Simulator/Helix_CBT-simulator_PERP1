@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import {
+  Check,
   ImagePlus,
   Pencil,
+  RotateCcw,
   Trash2,
   X,
 } from "lucide-react";
@@ -61,6 +63,7 @@ export default function MockDetailPage() {
   const [savingSubject, setSavingSubject] = useState(false);
   const [savingQuestion, setSavingQuestion] = useState(false);
   const [updatingSubjectId, setUpdatingSubjectId] = useState(null);
+  const [updatingQuestionId, setUpdatingQuestionId] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -529,6 +532,41 @@ export default function MockDetailPage() {
     }
   }
 
+  async function updateQuestionValidation(question, nextStatus) {
+    setUpdatingQuestionId(question.id);
+    clearMessages();
+
+    try {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from("questions")
+        .update({
+          validation_status: nextStatus,
+        })
+        .eq("id", question.id)
+        .eq("subject_config_id", selectedSubjectId)
+        .select(QUESTION_COLUMNS)
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setQuestions((currentQuestions) =>
+        currentQuestions.map((currentQuestion) =>
+          currentQuestion.id === data.id ? data : currentQuestion,
+        ),
+      );
+
+      setSuccessMessage(`Question marked as ${nextStatus}.`);
+    } catch (error) {
+      setErrorMessage(error.message || "Could not update validation status.");
+    } finally {
+      setUpdatingQuestionId(null);
+    }
+  }
+
   if (loading) {
     return (
       <main className="dashboard-page">
@@ -688,13 +726,7 @@ export default function MockDetailPage() {
           <div className="subject-list">
             {subjects.length === 0 ? (
               <div className="dashboard-empty-state">
-                <div className="empty-icon">+</div>
-
-                <h2>No subjects added yet</h2>
-
-                <p>
-                  Add the first subject to begin configuring this Mock.
-                </p>
+                <p>No subjects added yet.</p>
               </div>
             ) : (
               subjects.map((subjectConfig) => (
@@ -841,11 +873,7 @@ export default function MockDetailPage() {
                         }
                       }}
                     >
-                      <X
-                        size={16}
-                        strokeWidth={2}
-                        aria-hidden="true"
-                      />
+                      <X size={16} strokeWidth={2} aria-hidden="true" />
                       <span>Remove new image</span>
                     </button>
                   </div>
@@ -863,11 +891,7 @@ export default function MockDetailPage() {
                       type="button"
                       onClick={() => setExistingImageUrl("")}
                     >
-                      <X
-                        size={16}
-                        strokeWidth={2}
-                        aria-hidden="true"
-                      />
+                      <X size={16} strokeWidth={2} aria-hidden="true" />
                       <span>Remove existing image</span>
                     </button>
                   </div>
@@ -1027,6 +1051,63 @@ export default function MockDetailPage() {
                     <span className="mock-status-badge">
                       {question.validation_status}
                     </span>
+
+                    {question.validation_status !== "valid" && (
+                      <button
+                        className="question-icon-button question-valid-button"
+                        type="button"
+                        onClick={() =>
+                          updateQuestionValidation(question, "valid")
+                        }
+                        disabled={updatingQuestionId === question.id}
+                        title="Mark question as valid"
+                        aria-label="Mark question as valid"
+                      >
+                        <Check
+                          size={17}
+                          strokeWidth={2}
+                          aria-hidden="true"
+                        />
+                      </button>
+                    )}
+
+                    {question.validation_status !== "invalid" && (
+                      <button
+                        className="question-icon-button question-invalid-button"
+                        type="button"
+                        onClick={() =>
+                          updateQuestionValidation(question, "invalid")
+                        }
+                        disabled={updatingQuestionId === question.id}
+                        title="Mark question as invalid"
+                        aria-label="Mark question as invalid"
+                      >
+                        <X
+                          size={17}
+                          strokeWidth={2}
+                          aria-hidden="true"
+                        />
+                      </button>
+                    )}
+
+                    {question.validation_status !== "pending" && (
+                      <button
+                        className="question-icon-button question-pending-button"
+                        type="button"
+                        onClick={() =>
+                          updateQuestionValidation(question, "pending")
+                        }
+                        disabled={updatingQuestionId === question.id}
+                        title="Return question to pending"
+                        aria-label="Return question to pending"
+                      >
+                        <RotateCcw
+                          size={17}
+                          strokeWidth={2}
+                          aria-hidden="true"
+                        />
+                      </button>
+                    )}
 
                     <button
                       className="question-icon-button"
