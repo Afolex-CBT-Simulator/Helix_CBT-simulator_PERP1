@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import {
+  ImagePlus,
+  Pencil,
+  Trash2,
+  X,
+} from "lucide-react";
 import { getSupabaseClient } from "../../../../../lib/supabase/client";
 
 const SUBJECT_MODES = [
@@ -798,7 +804,12 @@ export default function MockDetailPage() {
                     title="Attach an image"
                     aria-label="Attach an image to this question"
                   >
-                    🖼️
+                    <ImagePlus
+                      size={18}
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    />
+                    <span>Attach image</span>
                   </button>
                 </div>
 
@@ -830,7 +841,8 @@ export default function MockDetailPage() {
                         }
                       }}
                     >
-                      Remove new image
+                      <X size={16} strokeWidth={2} aria-hidden="true" />
+                      <span>Remove new image</span>
                     </button>
                   </div>
                 )}
@@ -847,7 +859,8 @@ export default function MockDetailPage() {
                       type="button"
                       onClick={() => setExistingImageUrl("")}
                     >
-                      Remove existing image
+                      <X size={16} strokeWidth={2} aria-hidden="true" />
+                      <span>Remove existing image</span>
                     </button>
                   </div>
                 )}
@@ -1014,7 +1027,11 @@ export default function MockDetailPage() {
                       title="Edit question"
                       aria-label="Edit question"
                     >
-                      ✏️
+                      <Pencil
+                        size={17}
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      />
                     </button>
 
                     <button
@@ -1024,7 +1041,11 @@ export default function MockDetailPage() {
                       title="Delete question"
                       aria-label="Delete question"
                     >
-                      🗑️
+                      <Trash2
+                        size={17}
+                        strokeWidth={2}
+                        aria-hidden="true"
+                      />
                     </button>
                   </div>
                 </article>
