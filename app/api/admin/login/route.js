@@ -4,21 +4,11 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const passcode = String(body.passcode || "");
-    const configuredPasscode = process.env.HELIX_ADMIN_PASSCODE || "";
+    const { passcode } = await request.json();
 
-    if (passcode !== configuredPasscode) {
+    if (String(passcode || "") !== "Helix Simulator") {
       return NextResponse.json(
-        {
-          error: "Incorrect passcode.",
-          diagnostics: {
-            variableExists: Boolean(configuredPasscode),
-            enteredLength: passcode.length,
-            configuredLength: configuredPasscode.length,
-            nodeEnvironment: process.env.NODE_ENV,
-          },
-        },
+        { error: "Incorrect passcode. Please try again." },
         { status: 401 },
       );
     }
@@ -27,7 +17,7 @@ export async function POST(request) {
 
     response.cookies.set("helix_admin_session", "authenticated", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 8,
