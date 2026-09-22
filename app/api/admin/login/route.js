@@ -1,18 +1,37 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request) {
   try {
     const body = await request.json();
     const passcode = String(body.passcode || "");
+    const configuredPasscode = process.env.HELIX_ADMIN_PASSCODE || "";
 
-    if (!passcode || passcode !== process.env.HELIX_ADMIN_PASSCODE) {
+    const response = NextResponse.json({
+      success: passcode === configuredPasscode,
+      diagnostics: {
+        variableExists: Boolean(configuredPasscode),
+        enteredLength: passcode.length,
+        configuredLength: configuredPasscode.length,
+        nodeEnvironment: process.env.NODE_ENV,
+      },
+    });
+
+    if (passcode !== configuredPasscode) {
       return NextResponse.json(
-        { error: "Incorrect passcode. Please try again." },
+        {
+          error: "Incorrect passcode.",
+          diagnostics: {
+            variableExists: Boolean(configuredPasscode),
+            enteredLength: passcode.length,
+            configuredLength: configuredPasscode.length,
+            nodeEnvironment: process.env.NODE_ENV,
+          },
+        },
         { status: 401 },
       );
     }
-
-    const response = NextResponse.json({ success: true });
 
     response.cookies.set("helix_admin_session", "authenticated", {
       httpOnly: true,
