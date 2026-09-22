@@ -10,27 +10,44 @@ export default function AdminLoginPage() {
   const [passcode, setPasscode] = useState("");
   const [showPasscode, setShowPasscode] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
-    if (passcode.trim() === "") {
+    if (!passcode.trim()) {
       setErrorMessage("Please enter the admin passcode.");
       return;
     }
 
-    if (passcode !== "Helix Simulator") {
-      setErrorMessage("Incorrect passcode. Please try again.");
-      return;
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ passcode }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Login failed.");
+      }
+
+      router.push("/admin/dashboard");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Login failed. Please try again.",
+      );
+    } finally {
+      setLoading(false);
     }
-
-    setErrorMessage("");
-    router.push("/admin/dashboard");
-  }
-
-  function handlePasscodeChange(event) {
-    setPasscode(event.target.value);
-    setErrorMessage("");
   }
 
   return (
@@ -57,7 +74,10 @@ export default function AdminLoginPage() {
               name="admin-passcode"
               type={showPasscode ? "text" : "password"}
               value={passcode}
-              onChange={handlePasscodeChange}
+              onChange={(event) => {
+                setPasscode(event.target.value);
+                setErrorMessage("");
+              }}
               placeholder="Enter passcode"
               autoComplete="current-password"
               aria-invalid={errorMessage ? "true" : "false"}
@@ -77,7 +97,7 @@ export default function AdminLoginPage() {
                   showPasscode ? "" : "is-hidden"
                 }`}
                 aria-hidden="true"
-              ></span>
+              />
             </button>
           </div>
 
@@ -87,8 +107,8 @@ export default function AdminLoginPage() {
             </p>
           )}
 
-          <button type="submit" className="login-button">
-            Continue
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? "Checking..." : "Continue"}
           </button>
         </form>
 
@@ -98,4 +118,4 @@ export default function AdminLoginPage() {
       </section>
     </main>
   );
-                  }
+}
