@@ -18,9 +18,13 @@ export async function POST(request) {
       },
     });
 
-    if (passcode !== configuredPasscode) {
-      return NextResponse.json(
-        {
+if (!response.ok) {
+  const diagnostic = result.diagnostics
+    ? ` Variable exists: ${result.diagnostics.variableExists}. Entered length: ${result.diagnostics.enteredLength}. Configured length: ${result.diagnostics.configuredLength}. Environment: ${result.diagnostics.nodeEnvironment}.`
+    : "";
+
+  throw new Error(`${result.error || "Login failed."}${diagnostic}`);
+}
           error: "Incorrect passcode.",
           diagnostics: {
             variableExists: Boolean(configuredPasscode),
