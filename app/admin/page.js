@@ -1,12 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
-
   const [passcode, setPasscode] = useState("");
   const [showPasscode, setShowPasscode] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -15,7 +12,9 @@ export default function AdminLoginPage() {
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (!passcode.trim()) {
+    const enteredPasscode = passcode.trim();
+
+    if (!enteredPasscode) {
       setErrorMessage("Please enter the admin passcode.");
       return;
     }
@@ -29,16 +28,25 @@ export default function AdminLoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ passcode }),
+        credentials: "same-origin",
+        body: JSON.stringify({
+          passcode: enteredPasscode,
+        }),
       });
 
-      const result = await response.json();
+      let result = {};
 
-      if (!response.ok) {
-        throw new Error(result.error || "Login failed.");
+      try {
+        result = await response.json();
+      } catch {
+        result = {};
       }
 
-      router.push("/admin/dashboard");
+      if (!response.ok) {
+        throw new Error(result.error || "Login failed. Please try again.");
+      }
+
+      window.location.href = "/admin/dashboard";
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -81,6 +89,7 @@ export default function AdminLoginPage() {
               placeholder="Enter passcode"
               autoComplete="current-password"
               aria-invalid={errorMessage ? "true" : "false"}
+              disabled={loading}
             />
 
             <button
@@ -91,6 +100,7 @@ export default function AdminLoginPage() {
                 showPasscode ? "Hide admin passcode" : "Show admin passcode"
               }
               title={showPasscode ? "Hide passcode" : "Show passcode"}
+              disabled={loading}
             >
               <span
                 className={`eye-icon ${
