@@ -7,14 +7,22 @@ export async function POST(request) {
   try {
     const { passcode } = await request.json();
 
-    const enteredPasscode = String(passcode || "");
-    const configuredPasscode = process.env.HELIX_ADMIN_PASSCODE;
+    const enteredPasscode = String(passcode || "").trim();
+    const configuredPasscode = String(
+      process.env.HELIX_ADMIN_PASSCODE || "",
+    ).trim();
 
-    if (
-      !configuredPasscode ||
-      !enteredPasscode ||
-      enteredPasscode !== configuredPasscode
-    ) {
+    if (!configuredPasscode) {
+      return NextResponse.json(
+        {
+          error:
+            "Admin passcode is not configured in Vercel. Please check HELIX_ADMIN_PASSCODE.",
+        },
+        { status: 500 },
+      );
+    }
+
+    if (!enteredPasscode || enteredPasscode !== configuredPasscode) {
       return NextResponse.json(
         { error: "Incorrect passcode. Please try again." },
         { status: 401 },
