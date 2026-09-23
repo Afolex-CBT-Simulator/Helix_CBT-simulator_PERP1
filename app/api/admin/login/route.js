@@ -3,26 +3,15 @@ import { createAdminSession } from "../../../../lib/admin-session";
 
 export const dynamic = "force-dynamic";
 
+const ADMIN_PASSCODE = "Helix Simulator";
+
 export async function POST(request) {
   try {
     const { passcode } = await request.json();
 
     const enteredPasscode = String(passcode || "").trim();
-    const configuredPasscode = String(
-      process.env.HELIX_ADMIN_PASSCODE || "",
-    ).trim();
 
-    if (!configuredPasscode) {
-      return NextResponse.json(
-        {
-          error:
-            "Admin passcode is not configured in Vercel. Please check HELIX_ADMIN_PASSCODE.",
-        },
-        { status: 500 },
-      );
-    }
-
-    if (!enteredPasscode || enteredPasscode !== configuredPasscode) {
+    if (!enteredPasscode || enteredPasscode !== ADMIN_PASSCODE) {
       return NextResponse.json(
         { error: "Incorrect passcode. Please try again." },
         { status: 401 },
