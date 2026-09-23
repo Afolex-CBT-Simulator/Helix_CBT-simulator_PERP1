@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createAdminSession } from "../../../../lib/admin-session";
 
 export const dynamic = "force-dynamic";
 
@@ -6,18 +7,27 @@ export async function POST(request) {
   try {
     const { passcode } = await request.json();
 
-    if (String(passcode || "") !== "Helix Simulator") {
+    const enteredPasscode = String(passcode || "");
+    const configuredPasscode = process.env.HELIX_ADMIN_PASSCODE;
+
+    if (
+      !configuredPasscode ||
+      !enteredPasscode ||
+      enteredPasscode !== configuredPasscode
+    ) {
       return NextResponse.json(
         { error: "Incorrect passcode. Please try again." },
         { status: 401 },
       );
     }
 
+    const session = await createAdminSession();
+
     const response = NextResponse.json({ success: true });
 
-    response.cookies.set("helix_admin_session", "authenticated", {
+    response.cookies.set("helix_admin_session", session, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 8,
